@@ -417,6 +417,7 @@ def plot_scenarios(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame, dim:
         return fig
     
     elif dim == 2:
+        # set color-scale
         fig, axes = plt.subplots(3,3, facecolor='w', figsize=(15,15), sharex=True, sharey=True, \
             gridspec_kw=dict(width_ratios=[1,1,1]))
         norm = plt.Normalize(np.min(np.log(pre_below+1)), np.max(np.log(pre_below+1)))
