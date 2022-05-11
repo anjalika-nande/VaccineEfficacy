@@ -8,4 +8,7 @@ from .utils import(
     run_scenarios,
     run_scenarios_waning,
     plot_scenarios,
+    run_scenarios_size,
+    plot_scenarios_size,
+    plot_comparison,
 )

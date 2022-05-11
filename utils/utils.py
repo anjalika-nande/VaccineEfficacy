@@ -158,22 +158,22 @@ def plot_timeseries(sim_novax, sim_leaky, sim_aon, figsize=(22, 10), savefig=Fal
         plt.savefig(filename, bbox_inches='tight')
 
 
-def run_scenarios(y0: list, t: np.ndarray, r0s: np.ndarray, sigma: float, gamma: float, \
+def run_scenarios(y0: list, t: np.ndarray, R0s: np.ndarray, sigma: float, gamma: float, \
     epss: np.ndarray, scenario: str = 'pre'):  
     s0, e0, i0, r0 = y0
-    df_R0s = []; df_epss = []; df_fvs = []; df_sig = []
+    df_R0s = []; df_epss = []; df_fvs = []
     covs = ['Below fc', 'Slightly Above fc', 'Above fc']; df_covs = []
     df_r_perc_leakys = []; df_r_perc_aons = []; df_r_perc_diffs = []
 
-    for r0 in r0s:
-        beta = r0 * gamma
+    for R0 in R0s:
+        beta = R0 * gamma
         sim = odeint(seir, y0, t, args=(beta, sigma, gamma))
         _, _, _, r = sim.T
         
         r_tot = r[-1]
                 
         for eps in epss:
-            fc = 1/eps * (1 - 1/r0)
+            fc = 1/eps * (1 - 1/R0)
             for cov in covs:
                 if cov == 'Below fc':
                     fv = fc * 0.8
@@ -217,20 +217,15 @@ def run_scenarios(y0: list, t: np.ndarray, r0s: np.ndarray, sigma: float, gamma:
                 
                 _, _, _, _, _, _, r_leaky = sim_leaky
                 r_tot_leaky = r_leaky[-1]
-                r_perc_leaky = r_tot - r_tot_leaky / r_tot * 100
+                r_perc_leaky = (r_tot - r_tot_leaky) / r_tot * 100
 
                 _, _, _, _, _, _, r_aon = sim_aon
                 r_tot_aon = r_aon[-1]
-                r_perc_aon = r_tot - r_tot_aon / r_tot * 100
+                r_perc_aon = (r_tot - r_tot_aon) / r_tot * 100
 
                 r_perc_diff = r_perc_aon - r_perc_leaky
 
-                if r_perc_diff >= 2:
-                    df_sig.append('Yes')
-                else:
-                    df_sig.append('No')
-
-                df_R0s.append(r0)
+                df_R0s.append(R0)
                 df_epss.append(eps)
                 df_fvs.append(fv)
                 df_covs.append(cov)
@@ -240,28 +235,28 @@ def run_scenarios(y0: list, t: np.ndarray, r0s: np.ndarray, sigma: float, gamma:
 
     # build dataframe                        
     data = {'R0': df_R0s, 'VE': df_epss, 'Vax Coverage': df_covs, 'fv': df_fvs, \
-        'Leaky': df_r_perc_leakys, 'AON': df_r_perc_aons, 'Diff': df_r_perc_diffs, 'Significant': df_sig}
+        'Leaky': df_r_perc_leakys, 'AON': df_r_perc_aons, 'Diff': df_r_perc_diffs}
     vax_df = pd.DataFrame(data=data)
 
     return vax_df
 
 
-def run_scenarios_waning(y0: list, t: np.ndarray, r0s: np.ndarray, sigma: float, gamma: float, \
+def run_scenarios_waning(y0: list, t: np.ndarray, R0s: np.ndarray, sigma: float, gamma: float, \
     epss: np.ndarray, w: float, scenario: str = 'pre'):  
     s0, e0, i0, r0 = y0
     df_R0s = []; df_epss = []; df_fvs = []; df_sig = []
     covs = ['Below fc', 'Slightly Above fc', 'Above fc']; df_covs = []
     df_r_perc_leakys = []; df_r_perc_aons = []; df_r_perc_diffs = []
 
-    for r0 in r0s:
-        beta = r0 * gamma
+    for R0 in R0s:
+        beta = R0 * gamma
         sim = odeint(seir, y0, t, args=(beta, sigma, gamma))
         _, _, _, r = sim.T
         
         r_tot = r[-1]
                 
         for eps in epss:
-            fc = 1/eps * (1 - 1/r0)
+            fc = 1/eps * (1 - 1/R0)
             for cov in covs:
                 if cov == 'Below fc':
                     fv = fc * 0.8
@@ -313,12 +308,7 @@ def run_scenarios_waning(y0: list, t: np.ndarray, r0s: np.ndarray, sigma: float,
 
                 r_perc_diff = r_perc_aon - r_perc_leaky
 
-                if r_perc_diff >= 2:
-                    df_sig.append('Yes')
-                else:
-                    df_sig.append('No')
-
-                df_R0s.append(r0)
+                df_R0s.append(R0)
                 df_epss.append(eps)
                 df_fvs.append(fv)
                 df_covs.append(cov)
@@ -328,7 +318,7 @@ def run_scenarios_waning(y0: list, t: np.ndarray, r0s: np.ndarray, sigma: float,
 
     # build dataframe                        
     data = {'R0': df_R0s, 'VE': df_epss, 'Vax Coverage': df_covs, 'fv': df_fvs, \
-        'Leaky': df_r_perc_leakys, 'AON': df_r_perc_aons, 'Diff': df_r_perc_diffs, 'Significant': df_sig}
+        'Leaky': df_r_perc_leakys, 'AON': df_r_perc_aons, 'Diff': df_r_perc_diffs}
     vax_df = pd.DataFrame(data=data)
 
     return vax_df
@@ -466,3 +456,310 @@ def plot_scenarios(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame, dim:
         
         return fig
 
+
+def run_scenarios_size(y0: list, t: np.ndarray, R0s: np.ndarray, sigma: float, gamma: float, \
+    epss: np.ndarray, epidemic_size: int, measured: int): 
+    s0, e0, i0, r0 = y0
+    df_R0s = []; df_epss = []; df_fvs = []
+    covs = ['Below fc', 'Slightly Above fc', 'Above fc']; df_covs = []
+    df_r_perc_leakys = []; df_r_perc_aons = []; df_r_perc_diffs = []
+
+    for R0 in R0s:
+        beta = R0 * gamma
+        sim = odeint(seir, y0, t, args=(beta, sigma, gamma))
+        _, _, _, r = sim.T
+                
+        for eps in epss:
+            fc = 1/eps * (1 - 1/R0)
+            for cov in covs:
+                if cov == 'Below fc':
+                    fv = fc * 0.8
+                elif cov == 'Slightly Above fc':
+                    fv = 1 - ((1 - fc) * 0.8)
+                else:
+                    fv = 1 - ((1 - fc) * 0.5)
+
+                if epidemic_size == 0:
+                    tv = -1; s0_vax = 0.98-fv 
+                    t0 = np.linspace(0, measured, measured+1)
+
+                    sim0 = odeint(seir, y0, t0, args=(beta, sigma, gamma))
+                    _, _, _, r_novax = sim0.T
+
+                    r_tot = r_novax[-1]
+                
+                    # leaky
+                    vs0_leaky = 0; vr0_leaky = fv; y0_leaky = [s0_vax, vs0_leaky, vr0_leaky, e0, i0, r0]
+                    sim_leaky = run_modified_seir(y0_leaky, t0, tv, beta, sigma, gamma, fv, eps, mode = 'leaky')
+
+                    # aon
+                    vs0_aon = fv*(1-eps); vr0_aon = fv*eps; y0_aon = [s0_vax, vs0_aon, vr0_aon, e0, i0, r0]
+                    sim_aon = run_modified_seir(y0_aon, t0, tv, beta, sigma, gamma, fv, eps, mode = 'aon')   
+
+                elif epidemic_size == 10:
+                    vs0 = 0; vr0 = 0; y0_vax = [s0, vs0, vr0, e0, i0, r0]
+                    tv = t[r <= 0.1].astype(int)[-1] + 1
+                    t10 = np.linspace(0, tv+measured, tv+measured+1)
+
+                    sim10 = odeint(seir, y0, t10, args=(beta, sigma, gamma))
+                    _, _, _, r_novax = sim10.T
+
+                    r_tot = r_novax[-1]
+
+                    # leaky
+                    sim_leaky = run_modified_seir(y0_vax, t10, tv, beta, sigma, gamma, fv, eps, mode = 'leaky')
+
+                    # aon
+                    sim_aon = run_modified_seir(y0_vax, t10, tv, beta, sigma, gamma, fv, eps, mode = 'aon')
+                
+                elif epidemic_size == 25:
+                    vs0 = 0; vr0 = 0; y0_vax = [s0, vs0, vr0, e0, i0, r0]
+                    tv = t[r <= 0.25].astype(int)[-1] + 1
+                    t25 = np.linspace(0, tv+measured, tv+measured+1)
+
+                    sim25 = odeint(seir, y0, t25, args=(beta, sigma, gamma))
+                    _, _, _, r_novax = sim25.T
+
+                    r_tot = r_novax[-1]
+
+                    # leaky
+                    sim_leaky = run_modified_seir(y0_vax, t25, tv, beta, sigma, gamma, fv, eps, mode = 'leaky')
+
+                    # aon
+                    sim_aon = run_modified_seir(y0_vax, t25, tv, beta, sigma, gamma, fv, eps, mode = 'aon')
+                
+                _, _, _, _, _, _, r_leaky = sim_leaky
+                r_tot_leaky = r_leaky[-1]
+                r_perc_leaky = (r_tot - r_tot_leaky) / r_tot * 100
+
+                _, _, _, _, _, _, r_aon = sim_aon
+                r_tot_aon = r_aon[-1]
+                r_perc_aon = (r_tot - r_tot_aon) / r_tot * 100
+
+                r_perc_diff = r_perc_aon - r_perc_leaky
+
+                df_R0s.append(R0)
+                df_epss.append(eps)
+                df_fvs.append(fv)
+                df_covs.append(cov)
+                df_r_perc_leakys.append(r_perc_leaky)
+                df_r_perc_aons.append(r_perc_aon)
+                df_r_perc_diffs.append(r_perc_diff)
+
+    # build dataframe                        
+    data = {'R0': df_R0s, 'VE': df_epss, 'Vax Coverage': df_covs, 'fv': df_fvs, \
+        'Leaky': df_r_perc_leakys, 'AON': df_r_perc_aons, 'Diff': df_r_perc_diffs}
+    vax_df = pd.DataFrame(data=data)
+
+    return vax_df
+
+
+def plot_scenarios_size(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame, dim: int = 2):
+    r0s = np.arange(1.0, 3.0, 0.01); epss = np.arange(0.01, 1.0, 0.01)
+    plot_r0, plot_eps = np.nan_to_num(np.meshgrid(r0s, epss, indexing='ij'))
+
+    # pre
+    below_df1 = df1[df1['Vax Coverage'] == 'Below fc']
+    slabove_df1 = df1[df1['Vax Coverage'] == 'Slightly Above fc']
+    above_df1 = df1[df1['Vax Coverage'] == 'Above fc']
+
+    #pre_below = np.nan_to_num(np.reshape(below_df1['Diff'].to_numpy(), np.shape(plot_r0)))  
+    pre_below = np.nan_to_num(np.reshape(below_df1['Diff'].to_numpy(), np.shape(plot_r0))) 
+    pre_slabove = np.nan_to_num(np.reshape(slabove_df1['Diff'].to_numpy(), np.shape(plot_r0)))
+    pre_above = np.nan_to_num(np.reshape(above_df1['Diff'].to_numpy(), np.shape(plot_r0)))
+
+    # post10
+    below_df2 = df2[df2['Vax Coverage'] == 'Below fc']
+    slabove_df2 = df2[df2['Vax Coverage'] == 'Slightly Above fc']
+    above_df2 = df2[df2['Vax Coverage'] == 'Above fc']
+
+    post10_below = np.nan_to_num(np.reshape(below_df2['Diff'].to_numpy(), np.shape(plot_r0)))    
+    post10_slabove = np.nan_to_num(np.reshape(slabove_df2['Diff'].to_numpy(), np.shape(plot_r0)))
+    post10_above = np.nan_to_num(np.reshape(above_df2['Diff'].to_numpy(), np.shape(plot_r0)))
+
+    # post30
+    below_df3 = df3[df3['Vax Coverage'] == 'Below fc']
+    slabove_df3 = df3[df3['Vax Coverage'] == 'Slightly Above fc']
+    above_df3 = df3[df3['Vax Coverage'] == 'Above fc']
+
+    post30_below = np.nan_to_num(np.reshape(below_df3['Diff'].to_numpy(), np.shape(plot_r0)))    
+    post30_slabove = np.nan_to_num(np.reshape(slabove_df3['Diff'].to_numpy(), np.shape(plot_r0)))
+    post30_above = np.nan_to_num(np.reshape(above_df3['Diff'].to_numpy(), np.shape(plot_r0)))
+
+    if dim == 3:
+        fig, axes = plt.subplots(3,3, facecolor='w', figsize=(20,20), gridspec_kw=dict(width_ratios=[1,1,1]), \
+            subplot_kw={'projection': '3d'})
+        norm = plt.Normalize(np.min(np.log(pre_below+1)), np.max(np.log(pre_below+1)))
+
+        # Pre-transmission
+        surf1 = axes[0,0].plot_surface(plot_r0, plot_eps, np.log(pre_below+1), rstride=1, norm=norm, cstride=1, cmap='viridis')
+        axes[0,0].set_title('0% | Below $f^*_V$')
+
+        axes[0,1].plot_surface(plot_r0, plot_eps, np.log(pre_slabove+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
+        axes[0,1].set_title('0% | Slightly Above $f^*_V$')
+
+        axes[0,2].plot_surface(plot_r0, plot_eps, np.log(pre_above+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
+        axes[0,2].set_title('0% | Above $f^*_V$')
+        axes[0,2].set_zlabel('$log(P_A - P_L + 1)$')
+
+
+        # 10 days post-tranmission
+        axes[1,0].plot_surface(plot_r0, plot_eps, np.log(post10_below+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
+        axes[1,0].set_title('10% | Below $f^*_V$')
+
+        axes[1,1].plot_surface(plot_r0, plot_eps, np.log(post10_slabove+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
+        axes[1,1].set_title('10% | Slightly Above $f^*_V$')
+
+        axes[1,2].plot_surface(plot_r0, plot_eps, np.log(post10_above+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
+        axes[1,2].set_title('10% | Above $f^*_V$')
+        axes[1,2].set_zlabel('$log(P_A - P_L + 1)$')
+
+        # 30 days post-transmission
+        axes[2,0].plot_surface(plot_r0, plot_eps, np.log(post30_below+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
+        axes[2,0].set_title('25% | Below $f^*_V$')
+
+        axes[2,1].plot_surface(plot_r0, plot_eps, np.log(post30_slabove+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
+        axes[2,1].set_title('25% | Slightly Above $f^*_V$')
+
+        axes[2,2].plot_surface(plot_r0, plot_eps, np.log(post30_above+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
+        axes[2,2].set_title('25% | Above $f^*_V$')
+        axes[2,2].set_zlabel('$log(P_A - P_L + 1)$')
+
+        axs = np.array(axes)
+        for ax in axs.reshape(-1):
+            ax.set_xlabel('$R_{0,V}$')
+            ax.set_ylabel('Vaccine Efficacy')
+            ax.view_init(elev=30, azim=120)
+
+        cb = fig.colorbar(mappable=surf1, ax=axes, fraction=0.02, shrink=0.5)
+        cblabels = np.interp(cb.ax.get_yticks(), cb.ax.get_ylim(), surf1.get_clim())
+        cb.ax.set_yticklabels(np.round(np.exp(cblabels)-1).astype(int))
+    
+        return fig
+    
+    elif dim == 2:
+        # set color-scale
+        fig, axes = plt.subplots(3,3, facecolor='w', figsize=(15,15), sharex=True, sharey=True, \
+            gridspec_kw=dict(width_ratios=[1,1,1]))
+        norm = plt.Normalize(np.min(np.log(pre_below+1)), np.max(np.log(pre_below+1)))
+
+        # Pre-transmission 
+        proj = axes[0,0].contourf(plot_r0, plot_eps, np.log(pre_below+1), norm=norm, cmap='viridis')
+        axes[0,0].set_title('0% | Below $f^*_V$')
+        axes[0,0].set_ylabel('Vaccine Efficacy')
+
+        axes[0,1].contourf(plot_r0, plot_eps, np.log(pre_slabove+1), norm=norm, cmap='viridis')
+        axes[0,1].set_title('0% | Slightly Above $f^*_V$')
+
+        #ax3 = fig.add_subplot(133)
+        axes[0,2].contourf(plot_r0, plot_eps, np.log(pre_above+1), norm=norm, cmap='viridis')
+        axes[0,2].set_title('0% | Above $f^*_V$')
+
+        # 10 days post-transmission
+        axes[1,0].contourf(plot_r0, plot_eps, np.log(post10_below+1), norm=norm, cmap='viridis')
+        axes[1,0].set_title('10% | Below $f^*_V$')
+        axes[1,0].set_ylabel('Vaccine Efficacy')
+
+        axes[1,1].contourf(plot_r0, plot_eps, np.log(post10_slabove+1), norm=norm, cmap='viridis')
+        axes[1,1].set_title('10%| Slightly Above $f^*_V$')
+
+        axes[1,2].contourf(plot_r0, plot_eps, np.log(post10_above+1), norm=norm, cmap='viridis')
+        axes[1,2].set_title('10% | Above $f^*_V$')
+
+        # 30 days post-transmission
+        axes[2,0].contourf(plot_r0, plot_eps, np.log(post30_below+1), norm=norm, cmap='viridis')
+        axes[2,0].set_title('30%  | Below $f^*_V$')
+        axes[2,0].set_ylabel('Vaccine Efficacy')
+        axes[2,0].set_xlabel('$R_{0,V}$')
+
+        axes[2,1].contourf(plot_r0, plot_eps, np.log(post30_slabove+1), norm=norm, cmap='viridis')
+        axes[2,1].set_title('30% | Slightly Above $f^*_V$')
+        axes[2,1].set_xlabel('$R_{0,V}$')
+
+        axes[2,2].contourf(plot_r0, plot_eps, np.log(post30_above+1), norm=norm, cmap='viridis')
+        axes[2,2].set_title('30% | Above $f^*_V$')
+        axes[2,2].set_xlabel('$R_{0,V}$')
+
+        fig.tight_layout(pad=0.1)
+        cb = fig.colorbar(mappable=proj, ax=axes, fraction=0.02, shrink=0.5)
+        cblabels = np.interp(cb.ax.get_yticks(), cb.ax.get_ylim(), proj.get_clim())
+        cb.ax.set_yticklabels(np.round(np.exp(cblabels)-1).astype(int))
+        
+        return fig
+
+
+def plot_comparison(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame, df4: pd.DataFrame, df5: pd.DataFrame, \
+    df6: pd.DataFrame, eps: float):
+    plot_r0 = np.arange(1.0, 3.0, 0.01); 
+    belows = np.zeros((6, len(plot_r0)))
+    slaboves = np.zeros((6, len(plot_r0)))
+    aboves = np.zeros((6, len(plot_r0)))
+
+    for i, df in enumerate([df1, df2, df3, df4, df5, df6]):
+        df_eps = df[df['VE'] == eps]
+        below_df_eps = df_eps[df_eps['Vax Coverage'] == 'Below fc']
+        slabove_df_eps = df_eps[df_eps['Vax Coverage'] == 'Slightly Above fc']
+        above_df_eps = df_eps[df_eps['Vax Coverage'] == 'Above fc']
+
+        below = np.nan_to_num(np.reshape(below_df_eps['Diff'].to_numpy(), np.shape(plot_r0)))    
+        slabove = np.nan_to_num(np.reshape(slabove_df_eps['Diff'].to_numpy(), np.shape(plot_r0)))
+        above = np.nan_to_num(np.reshape(above_df_eps['Diff'].to_numpy(), np.shape(plot_r0)))
+
+        belows[i] = below
+        slaboves[i] = slabove
+        aboves[i] = above
+
+    fig, axes = plt.subplots(3,3, facecolor='w', figsize=(10,10), sharex=True, sharey=True, \
+        gridspec_kw=dict(width_ratios=[1,1,1]))
+        
+    # Pre-transmission 
+    axes[0,0].plot(plot_r0, belows[0], 'b--', label='Without Waning')
+    axes[0,0].plot(plot_r0, belows[3], 'r:', label='With Waning')
+    axes[0,0].set_title('Pre | Below $f^*_V$')
+    axes[0,0].set_ylabel('Difference in % Reduction of $R$')
+    legend = axes[0,0].legend(); legend.get_frame().set_alpha(0.5)
+
+    axes[0,1].plot(plot_r0, slaboves[0], 'b--')
+    axes[0,1].plot(plot_r0, slaboves[3], 'r:')
+    axes[0,1].set_title('Pre | Slightly Above $f^*_V$')
+
+    #ax3 = fig.add_subplot(133)
+    axes[0,2].plot(plot_r0, aboves[0], 'b--')
+    axes[0,2].plot(plot_r0, aboves[3], 'r:')
+    axes[0,2].set_title('Pre | Above $f^*_V$')
+
+    # 10 days post-transmission
+    axes[1,0].plot(plot_r0, belows[1], 'b--')
+    axes[1,0].plot(plot_r0, belows[4], 'r:')
+    #axes[1,0].set_ylim([-0.2, 17.7])
+    axes[1,0].set_title('10 Days Post | Below $f^*_V$')
+    axes[1,0].set_ylabel('Difference in % Reduction of $R$')
+
+    axes[1,1].plot(plot_r0, slaboves[1], 'b--')
+    axes[1,1].plot(plot_r0, slaboves[4], 'r:')
+    axes[1,1].set_title('10 Days Post | Slightly Above $f^*_V$')
+
+    axes[1,2].plot(plot_r0, aboves[1], 'b--')
+    axes[1,2].plot(plot_r0, aboves[4], 'r:')
+    axes[1,2].set_title('10 Days Post | Above $f^*_V$')
+
+    # 30 days post-transmission
+    axes[2,0].plot(plot_r0, belows[2], 'b--')
+    axes[2,0].plot(plot_r0, belows[5], 'r:')
+    axes[2,0].set_title('30 Days Post | Below $f^*_V$')
+    axes[2,0].set_ylabel('Difference in % Reduction of $R$')
+    axes[2,0].set_xlabel('$R_{0,V}$')
+
+    axes[2,1].plot(plot_r0, slaboves[2], 'b--')
+    axes[2,1].plot(plot_r0, slaboves[5], 'r:')
+    axes[2,1].set_title('30 Days Post | Slightly Above $f^*_V$')
+    axes[2,1].set_xlabel('$R_{0,V}$')
+
+    axes[2,2].plot(plot_r0, aboves[2], 'b--')
+    axes[2,2].plot(plot_r0, aboves[5], 'r:')
+    axes[2,2].set_title('30 Days Post | Above $f^*_V$')
+    axes[2,2].set_xlabel('$R_{0,V}$')
+
+    fig.tight_layout(pad=0.1)
+
+    return fig
