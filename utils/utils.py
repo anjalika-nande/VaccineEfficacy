@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.integrate import odeint
+from scipy.integrate import odeint, solve_ivp
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -16,77 +16,189 @@ def seir (y, t, beta, sigma, gamma):
     return dsdt, dedt, didt, drdt
 
 
-def _delta(t, tv):
-    if (t > tv - 0.8) and (t < tv + 0.8):
-        return 1
-    else:
-        return 0
+def seir_ivp(t, y, beta, sigma, gamma):
+    """
+    Basic SEIR model
+    """
+    s, e, i, r = y
+    dsdt = - beta*s*i
+    dedt = beta*s*i - sigma*e
+    didt = sigma*e - gamma*i
+    drdt = gamma*i
+    
+    return [dsdt, dedt, didt, drdt]
 
 
-def modified_seir(y, t, tv, beta, sigma, gamma, fv, epsL, epsA):
+def modified_seir(y, t, beta, sigma, gamma, epsL):
     """
     Modified SEIR model for instantaneous vaccination. 
     """
-    s, v_s, v_r, e, i, r = y
-    v = fv * _delta(t, tv)
+    s, vs, vr, e, i, r = y
     
-    dsdt = - beta*s*i - v*s
-    dvsdt = (1-epsA)*v*s - beta*v_s*i
-    dvrdt = epsA*v*s - beta*(1-epsL)*v_r*i
-    dedt = beta*(s+v_s+(1-epsL)*v_r)*i - sigma*e
+    dsdt = - beta*s*i
+    dvsdt = - beta*vs*i
+    dvrdt = - beta*(1-epsL)*vr*i
+    dedt = beta*(s+vs+(1-epsL)*vr)*i - sigma*e
     didt = sigma*e - gamma*i
     drdt = gamma*i
 
     return dsdt, dvsdt, dvrdt, dedt, didt, drdt
 
 
-def modified_seir_waning(y, t, tv, beta, sigma, gamma, fv, epsL, epsA, w):
+def modified_seir_ivp(t, y, beta, sigma, gamma, epsL):
     """
     Modified SEIR model for instantaneous vaccination. 
     """
-    s, v_s, v_r, e, i, r = y
-    v = fv * _delta(t, tv)
+    s, vs, vr, e, i, r = y
     
-    dsdt = - beta*s*i - v*s
-    dvsdt = (1-epsA)*v*s - beta*v_s*i + w*v_r
-    dvrdt = epsA*v*s - beta*(1-epsL)*v_r*i - w*v_r
-    dedt = beta*(s+v_s+(1-epsL)*v_r)*i - sigma*e
+    dsdt = - beta*s*i
+    dvsdt = - beta*vs*i
+    dvrdt = - beta*(1-epsL)*vr*i
+    dedt = beta*(s+vs+(1-epsL)*vr)*i - sigma*e
+    didt = sigma*e - gamma*i
+    drdt = gamma*i
+
+    return [dsdt, dvsdt, dvrdt, dedt, didt, drdt]
+
+
+def modified_seir_waning(y, t, beta, sigma, gamma, epsL, w):
+    """
+    Modified SEIR model for instantaneous vaccination. 
+    """
+    s, vs, vr, e, i, r = y
+    
+    dsdt = - beta*s*i
+    dvsdt = - beta*vs*i + w*vr
+    dvrdt = - beta*(1-epsL)*vr*i - w*vr
+    dedt = beta*(s+vs+(1-epsL)*vr)*i - sigma*e
     didt = sigma*e - gamma*i
     drdt = gamma*i
 
     return dsdt, dvsdt, dvrdt, dedt, didt, drdt
 
 
-def run_modified_seir(y0: list, t: np.ndarray, tv: int, beta: float, sigma: float, gamma: float, fv: float, \
+def run_modified_seir(y0: list, t: int, tv: int, beta: float, sigma: float, gamma: float, fv: float, \
     eps: float, mode: str = 'leaky'):
+    s0, e0, i0, r0 = y0
     if mode == 'leaky':
         epsL = eps; epsA = 1
     elif mode == 'aon':
         epsL = 1; epsA = eps
     else:
         print("Mode must be 'leaky' or 'aon'.")
+    
+    if tv == -1:
+        vs0 = fv*(1-epsA)*s0; vr0 = fv*epsA*s0; s0_vax = s0*(1-fv)
+        y0_vax = [s0_vax, vs0, vr0, e0, i0, r0]
+        sim_vax = odeint(modified_seir, y0_vax, np.linspace(0, t, t+1), args=(beta, sigma, gamma, epsL))
+        s_vax, vs, vr, e_vax, i_vax, r_vax = sim_vax.T
+        v = vs + vr
 
-    sim = odeint(modified_seir, y0, t, args=(tv, beta, sigma, gamma, fv, epsL, epsA))
-    s, v_s, v_r, e, i, r = sim.T
-    v = v_s + v_r
+        return s_vax, vs, vr, v, e_vax, i_vax, r_vax
+    
+    else:
+        sim = odeint(seir, y0, np.linspace(0, tv, tv+1), args=(beta, sigma, gamma))
+        s, e, i, r = sim.T
 
-    return s, v_s, v_r, v, e, i, r
+        vs0 = (1-epsA)*fv*s[-1]; vr0 = epsA*fv*s[-1]; s0_vax = s[-1]*(1-fv)
+        y0_vax = [s0_vax, vs0, vr0, e[-1], i[-1], r[-1]]
+        sim_vax = odeint(modified_seir, y0_vax, np.linspace(0, t-tv, t-tv+1), args=(beta, sigma, gamma, epsL))
+        s_vax, vs, vr, e_vax, i_vax, r_vax = sim_vax.T
+        v = vs + vr
+
+        s_vax = np.concatenate((s[:-1], s_vax), axis=None)
+        vs = np.concatenate((np.zeros(np.shape(s[:-1])), vs), axis=None)
+        vr = np.concatenate((np.zeros(np.shape(s[:-1])), vr), axis=None)
+        v = np.concatenate((np.zeros(np.shape(s[:-1])), v), axis=None)
+        e_vax = np.concatenate((e[:-1], e_vax), axis=None)
+        i_vax = np.concatenate((i[:-1], i_vax), axis=None)
+        r_vax = np.concatenate((r[:-1], r_vax), axis=None)
+    
+        return s_vax, vs, vr, v, e_vax, i_vax, r_vax
 
 
-def run_modified_seir_waning(y0: list, t: np.ndarray, tv: int, beta: float, sigma: float, gamma: float, fv: float, \
+def run_modified_seir_ivp(y0: list, t: float, tv: float, beta: float, sigma: float, gamma: float, fv: float, \
+    eps: float, mode: str = 'leaky'):
+    s0, e0, i0, r0 = y0
+    if mode == 'leaky':
+        epsL = eps; epsA = 1
+    elif mode == 'aon':
+        epsL = 1; epsA = eps
+    else:
+        print("Mode must be 'leaky' or 'aon'.")
+    
+    if tv == -1:
+        vs0 = fv*(1-epsA)*s0; vr0 = fv*epsA*s0; s0_vax = s0*(1-fv)
+        y0_vax = [s0_vax, vs0, vr0, e0, i0, r0]
+        sol_vax = solve_ivp(modified_seir_ivp, [0, t], y0_vax, args=(beta, sigma, gamma, epsL), \
+            dense_output=True)
+        s_vax = sol_vax.y[0]; vs = sol_vax.y[1]; vr = sol_vax.y[2]; e_vax = sol_vax.y[3]
+        i_vax = sol_vax.y[4]; r_vax = sol_vax.y[5]
+        v = vs + vr
+
+        return s_vax, vs, vr, v, e_vax, i_vax, r_vax
+    
+    else:
+        sol = solve_ivp(seir_ivp, [0, t], y0, args=(beta, sigma, gamma), dense_output=True)
+        s = sol.y[0]; e = sol.y[1]; i = sol.y[2]; r = sol.y[3]
+
+        vs0 = (1-epsA)*fv*s[-1]; vr0 = epsA*fv*s[-1]; s0_vax = s[-1]*(1-fv)
+        y0_vax = [s0_vax, vs0, vr0, e[-1], i[-1], r[-1]]
+        sol_vax = solve_ivp(modified_seir_ivp, [0, t], y0_vax, args=(beta, sigma, gamma, epsL), \
+            dense_output=True)
+        s_vax = sol_vax.y[0]; vs = sol_vax.y[1]; vr = sol_vax.y[2]; e_vax = sol_vax.y[3]
+        i_vax = sol_vax.y[4]; r_vax = sol_vax.y[5]
+        v = vs + vr
+
+        s_vax = np.concatenate((s[:-1], s_vax), axis=None)
+        vs = np.concatenate((np.zeros(np.shape(s[:-1])), vs), axis=None)
+        vr = np.concatenate((np.zeros(np.shape(s[:-1])), vr), axis=None)
+        v = np.concatenate((np.zeros(np.shape(s[:-1])), v), axis=None)
+        e_vax = np.concatenate((e[:-1], e_vax), axis=None)
+        i_vax = np.concatenate((i[:-1], i_vax), axis=None)
+        r_vax = np.concatenate((r[:-1], r_vax), axis=None)
+    
+        return s_vax, vs, vr, v, e_vax, i_vax, r_vax
+
+
+def run_modified_seir_waning(y0: list, t: int, tv: int, beta: float, sigma: float, gamma: float, fv: float, \
     eps: float, w: float, mode: str = 'leaky'):
+    s0, e0, i0, r0 = y0
     if mode == 'leaky':
         epsL = eps; epsA = 1
     elif mode == 'aon':
         epsL = 1; epsA = eps
     else:
         print("Mode must be 'leaky' or 'aon'.")
+    
+    if tv == -1:
+        vs0 = fv*(1-epsA)*s0; vr0 = fv*epsA*s0; s0_vax = s0*(1-fv)
+        y0_vax = [s0_vax, vs0, vr0, e0, i0, r0]
+        sim_vax = odeint(modified_seir_waning, y0_vax, np.linspace(0, t, t+1), args=(beta, sigma, gamma, epsL, w))
+        s_vax, vs, vr, e_vax, i_vax, r_vax = sim_vax.T
+        v = vs + vr
 
-    sim = odeint(modified_seir_waning, y0, t, args=(tv, beta, sigma, gamma, fv, epsL, epsA, w))
-    s, v_s, v_r, e, i, r = sim.T
-    v = v_s + v_r
+        return s_vax, vs, vr, v, e_vax, i_vax, r_vax
+    
+    else:
+        sim = odeint(seir, y0, np.linspace(0, tv, tv+1), args=(beta, sigma, gamma))
+        s, e, i, r = sim.T
 
-    return s, v_s, v_r, v, e, i, r
+        vs0 = (1-epsA)*fv*s[-1]; vr0 = epsA*fv*s[-1]; s0_vax = s[-1]*(1-fv)
+        y0_vax = [s0_vax, vs0, vr0, e[-1], i[-1], r[-1]]
+        sim_vax = odeint(modified_seir_waning, y0_vax, np.linspace(0, t-tv, t-tv+1), args=(beta, sigma, gamma, epsL, w))
+        s_vax, vs, vr, e_vax, i_vax, r_vax = sim_vax.T
+        v = vs + vr
+
+        s_vax = np.concatenate((s[:-1], s_vax), axis=None)
+        vs = np.concatenate((np.zeros(np.shape(s[:-1])), vs), axis=None)
+        vr = np.concatenate((np.zeros(np.shape(s[:-1])), vr), axis=None)
+        v = np.concatenate((np.zeros(np.shape(s[:-1])), v), axis=None)
+        e_vax = np.concatenate((e[:-1], e_vax), axis=None)
+        i_vax = np.concatenate((i[:-1], i_vax), axis=None)
+        r_vax = np.concatenate((r[:-1], r_vax), axis=None)
+    
+        return s_vax, vs, vr, v, e_vax, i_vax, r_vax
 
 
 def plot_timeseries(sim_novax, sim_leaky, sim_aon, figsize=(22, 10), savefig=False, filename: str = None):
@@ -158,22 +270,28 @@ def plot_timeseries(sim_novax, sim_leaky, sim_aon, figsize=(22, 10), savefig=Fal
         plt.savefig(filename, bbox_inches='tight')
 
 
-def run_scenarios(y0: list, t: np.ndarray, R0s: np.ndarray, sigma: float, gamma: float, \
-    epss: np.ndarray, scenario: str = 'pre'):  
+def run_scenarios(y0: list, t: int, tv: int, R0s: np.ndarray, sigma: float, gamma: float, epss: np.ndarray):  
     s0, e0, i0, r0 = y0
     df_R0s = []; df_epss = []; df_fvs = []
     covs = ['Below fc', 'Slightly Above fc', 'Above fc']; df_covs = []
     df_r_perc_leakys = []; df_r_perc_aons = []; df_r_perc_diffs = []
+    df_rs = []; df_rleakys = []; df_raons = []
 
     for R0 in R0s:
         beta = R0 * gamma
-        sim = odeint(seir, y0, t, args=(beta, sigma, gamma))
+        sim = odeint(seir, y0, np.linspace(0, t, t+1), args=(beta, sigma, gamma))
         _, _, _, r = sim.T
         
         r_tot = r[-1]
                 
         for eps in epss:
-            fc = 1/eps * (1 - 1/R0)
+            if tv == -1:
+                fc = 1/eps * (1 - 1/R0)
+            else:
+                sim_temp = odeint(seir, y0, np.linspace(0, tv, tv+1), args=(beta, sigma, gamma))
+                s_temp, _, _, _ = sim_temp.T
+                fc = 1/eps * (1 - 1/(R0*s_temp[-1]))
+                
             for cov in covs:
                 if cov == 'Below fc':
                     fv = fc * 0.8
@@ -182,47 +300,18 @@ def run_scenarios(y0: list, t: np.ndarray, R0s: np.ndarray, sigma: float, gamma:
                 else:
                     fv = 1 - ((1 - fc) * 0.5)
 
-                s0_vax = 0.98-fv 
-
-                if scenario == 'pre':
-                    tv = -1
+                if fv < 0:
+                    fv = 0
+                elif fv > 0.98:
+                    fv = 0.98
+                else:
+                    fv = fv
                 
-                    # leaky
-                    vs0_leaky = 0; vr0_leaky = fv; y0_leaky = [s0_vax, vs0_leaky, vr0_leaky, e0, i0, r0]
-                    sim_leaky = run_modified_seir(y0_leaky, t, tv, beta, sigma, gamma, fv, eps, mode = 'leaky')
+                _, _, _, _, _, _, r_leaky = run_modified_seir(y0, t, tv, beta, sigma, gamma, fv, eps, mode='leaky')
+                _, _, _, _, _, _, r_aon = run_modified_seir(y0, t, tv, beta, sigma, gamma, fv, eps, mode='aon')
 
-                    # aon
-                    vs0_aon = fv*(1-eps); vr0_aon = fv*eps; y0_aon = [s0_vax, vs0_aon, vr0_aon, e0, i0, r0]
-                    sim_aon = run_modified_seir(y0_aon, t, tv, beta, sigma, gamma, fv, eps, mode = 'aon')   
-
-                elif scenario == 'post10':
-                    tv = 10; vs0 = 0; vr0 = 0
-                    y0_vax = [s0, vs0, vr0, e0, i0, r0]
-
-                    # leaky
-                    sim_leaky = run_modified_seir(y0_vax, t, tv, beta, sigma, gamma, fv, eps, mode = 'leaky')
-
-                    # aon
-                    sim_aon = run_modified_seir(y0_vax, t, tv, beta, sigma, gamma, fv, eps, mode = 'aon')
-                
-                elif scenario == 'post30':
-                    tv = 30; vs0 = 0; vr0 = 0
-                    y0_vax = [s0, vs0, vr0, e0, i0, r0]
-
-                    # leaky
-                    sim_leaky = run_modified_seir(y0_vax, t, tv, beta, sigma, gamma, fv, eps, mode = 'leaky')
-
-                    # aon
-                    sim_aon = run_modified_seir(y0_vax, t, tv, beta, sigma, gamma, fv, eps, mode = 'aon')
-                
-                _, _, _, _, _, _, r_leaky = sim_leaky
-                r_tot_leaky = r_leaky[-1]
-                r_perc_leaky = (r_tot - r_tot_leaky) / r_tot * 100
-
-                _, _, _, _, _, _, r_aon = sim_aon
-                r_tot_aon = r_aon[-1]
-                r_perc_aon = (r_tot - r_tot_aon) / r_tot * 100
-
+                r_perc_leaky = (r[-1] - r_leaky[-1]) / r[-1] * 100
+                r_perc_aon = (r[-1] - r_aon[-1]) / r[-1] * 100
                 r_perc_diff = r_perc_aon - r_perc_leaky
 
                 df_R0s.append(R0)
@@ -232,31 +321,64 @@ def run_scenarios(y0: list, t: np.ndarray, R0s: np.ndarray, sigma: float, gamma:
                 df_r_perc_leakys.append(r_perc_leaky)
                 df_r_perc_aons.append(r_perc_aon)
                 df_r_perc_diffs.append(r_perc_diff)
+                df_rs.append(r[-1])
+                df_rleakys.append(r_leaky[-1])
+                df_raons.append(r_aon[-1])
 
     # build dataframe                        
     data = {'R0': df_R0s, 'VE': df_epss, 'Vax Coverage': df_covs, 'fv': df_fvs, \
-        'Leaky': df_r_perc_leakys, 'AON': df_r_perc_aons, 'Diff': df_r_perc_diffs}
+        'Leaky': df_r_perc_leakys, 'AON': df_r_perc_aons, 'Diff': df_r_perc_diffs, \
+        'r': df_rs, 'r_leaky': df_rleakys, 'r_aon': df_raons}
     vax_df = pd.DataFrame(data=data)
 
     return vax_df
 
 
-def run_scenarios_waning(y0: list, t: np.ndarray, R0s: np.ndarray, sigma: float, gamma: float, \
-    epss: np.ndarray, w: float, scenario: str = 'pre'):  
+def run_scenarios_size(y0: list, t: int, size: float, R0s: np.ndarray, sigma: float, gamma: float, \
+    epss: np.ndarray, measured: int):  
     s0, e0, i0, r0 = y0
-    df_R0s = []; df_epss = []; df_fvs = []; df_sig = []
+    df_R0s = []; df_epss = []; df_fvs = []
     covs = ['Below fc', 'Slightly Above fc', 'Above fc']; df_covs = []
     df_r_perc_leakys = []; df_r_perc_aons = []; df_r_perc_diffs = []
+    df_rs = []; df_rleakys = []; df_raons = []
 
     for R0 in R0s:
         beta = R0 * gamma
-        sim = odeint(seir, y0, t, args=(beta, sigma, gamma))
-        _, _, _, r = sim.T
-        
-        r_tot = r[-1]
+        sol = solve_ivp(seir_ivp, [0, t], y0, args=(beta, sigma, gamma), dense_output=True)
+        r = sol.y[3]; r10 = r[-1]*0.1; r25 = r[-1]*0.25
+
+        def _reach_size10(t, y, beta, sigma, gamma): return y[3] - r10
+        def _reach_size25(t, y, beta, sigma, gamma): return y[3] - r25
+
+        _reach_size10.terminate=True
+        _reach_size25.terminate=True
                 
         for eps in epss:
-            fc = 1/eps * (1 - 1/R0)
+            if size == 0:
+                fc = 1/eps * (1 - 1/R0)
+                tv = -1
+                t_new = measured
+            else:
+                if size == 0.1:
+                    sol = solve_ivp(seir_ivp, [0, t], y0, args=(beta, sigma, gamma), \
+                        events=_reach_size10, dense_output=True)
+                elif size == 0.25:
+                    sol = solve_ivp(seir_ivp, [0, t], y0, args=(beta, sigma, gamma), \
+                        events=_reach_size25, dense_output=True)
+
+                if np.array(sol.t_events).size == 0:
+                    rmax_idx = np.argmax(np.array(sol.y[3]))
+                    s_temp = sol.y[0][rmax_idx]
+                    tv = np.array(sol.t)[rmax_idx]
+                else:
+                    s_temp = np.ravel(np.array(sol.y_events[0]))[0]
+                    tv = np.ravel(np.array(sol.t_events))[0]
+                fc = 1/eps * (1 - 1/(R0*s_temp))
+                t_new = tv + measured
+            
+            sol_vax = solve_ivp(seir_ivp, [0, t_new], y0, args=(beta, sigma, gamma), dense_output=True)
+            r_vax = sol_vax.y[3]
+                
             for cov in covs:
                 if cov == 'Below fc':
                     fv = fc * 0.8
@@ -265,47 +387,18 @@ def run_scenarios_waning(y0: list, t: np.ndarray, R0s: np.ndarray, sigma: float,
                 else:
                     fv = 1 - ((1 - fc) * 0.5)
 
-                s0_vax = 0.98-fv 
-
-                if scenario == 'pre':
-                    tv = -1
+                if fv < 0:
+                    fv = 0
+                elif fv > 0.98:
+                    fv = 0.98
+                else:
+                    fv = fv
                 
-                    # leaky
-                    vs0_leaky = 0; vr0_leaky = fv; y0_leaky = [s0_vax, vs0_leaky, vr0_leaky, e0, i0, r0]
-                    sim_leaky = run_modified_seir_waning(y0_leaky, t, tv, beta, sigma, gamma, fv, eps, w, mode = 'leaky')
+                _, _, _, _, _, _, r_leaky = run_modified_seir_ivp(y0, t_new, tv, beta, sigma, gamma, fv, eps, mode='leaky')
+                _, _, _, _, _, _, r_aon = run_modified_seir_ivp(y0, t_new, tv, beta, sigma, gamma, fv, eps, mode='aon')
 
-                    # aon
-                    vs0_aon = fv*(1-eps); vr0_aon = fv*eps; y0_aon = [s0_vax, vs0_aon, vr0_aon, e0, i0, r0]
-                    sim_aon = run_modified_seir_waning(y0_aon, t, tv, beta, sigma, gamma, fv, eps, w, mode = 'aon')   
-
-                elif scenario == 'post10':
-                    tv = 10; vs0 = 0; vr0 = 0
-                    y0_vax = [s0, vs0, vr0, e0, i0, r0]
-
-                    # leaky
-                    sim_leaky = run_modified_seir_waning(y0_vax, t, tv, beta, sigma, gamma, fv, eps, w, mode = 'leaky')
-
-                    # aon
-                    sim_aon = run_modified_seir_waning(y0_vax, t, tv, beta, sigma, gamma, fv, eps, w, mode = 'aon')
-                
-                elif scenario == 'post30':
-                    tv = 30; vs0 = 0; vr0 = 0
-                    y0_vax = [s0, vs0, vr0, e0, i0, r0]
-
-                    # leaky
-                    sim_leaky = run_modified_seir_waning(y0_vax, t, tv, beta, sigma, gamma, fv, eps, w, mode = 'leaky')
-
-                    # aon
-                    sim_aon = run_modified_seir_waning(y0_vax, t, tv, beta, sigma, gamma, fv, eps, w, mode = 'aon')
-                
-                _, _, _, _, _, _, r_leaky = sim_leaky
-                r_tot_leaky = r_leaky[-1]
-                r_perc_leaky = r_tot - r_tot_leaky / r_tot * 100
-
-                _, _, _, _, _, _, r_aon = sim_aon
-                r_tot_aon = r_aon[-1]
-                r_perc_aon = r_tot - r_tot_aon / r_tot * 100
-
+                r_perc_leaky = (r_vax[-1] - r_leaky[-1]) / r_vax[-1] * 100
+                r_perc_aon = (r_vax[-1] - r_aon[-1]) / r_vax[-1] * 100
                 r_perc_diff = r_perc_aon - r_perc_leaky
 
                 df_R0s.append(R0)
@@ -315,10 +408,78 @@ def run_scenarios_waning(y0: list, t: np.ndarray, R0s: np.ndarray, sigma: float,
                 df_r_perc_leakys.append(r_perc_leaky)
                 df_r_perc_aons.append(r_perc_aon)
                 df_r_perc_diffs.append(r_perc_diff)
+                df_rs.append(r_vax[-1])
+                df_rleakys.append(r_leaky[-1])
+                df_raons.append(r_aon[-1])
 
     # build dataframe                        
     data = {'R0': df_R0s, 'VE': df_epss, 'Vax Coverage': df_covs, 'fv': df_fvs, \
-        'Leaky': df_r_perc_leakys, 'AON': df_r_perc_aons, 'Diff': df_r_perc_diffs}
+        'Leaky': df_r_perc_leakys, 'AON': df_r_perc_aons, 'Diff': df_r_perc_diffs, \
+        'r': df_rs, 'r_leaky': df_rleakys, 'r_aon': df_raons}
+    vax_df = pd.DataFrame(data=data)
+
+    return vax_df
+
+
+def run_scenarios_waning(y0: list, t: int, tv: int, R0s: np.ndarray, sigma: float, gamma: float, epss: np.ndarray, w: float):  
+    s0, e0, i0, r0 = y0
+    df_R0s = []; df_epss = []; df_fvs = []
+    covs = ['Below fc', 'Slightly Above fc', 'Above fc']; df_covs = []
+    df_r_perc_leakys = []; df_r_perc_aons = []; df_r_perc_diffs = []
+    df_rs = []; df_rleakys = []; df_raons = []
+
+    for R0 in R0s:
+        beta = R0 * gamma
+        sim = odeint(seir, y0, np.linspace(0, t, t+1), args=(beta, sigma, gamma))
+        _, _, _, r = sim.T
+        
+        r_tot = r[-1]
+                
+        for eps in epss:
+            if tv == -1:
+                fc = 1/eps * (1 - 1/R0)
+            else:
+                sim_temp = odeint(seir, y0, np.linspace(0, tv, tv+1), args=(beta, sigma, gamma))
+                s_temp, _, _, _ = sim_temp.T
+                fc = 1/eps * (1 - 1/(R0*s_temp[-1]))
+                
+            for cov in covs:
+                if cov == 'Below fc':
+                    fv = fc * 0.8
+                elif cov == 'Slightly Above fc':
+                    fv = 1 - ((1 - fc) * 0.8)
+                else:
+                    fv = 1 - ((1 - fc) * 0.5)
+
+                if fv < 0:
+                    fv = 0
+                elif fv > 0.98:
+                    fv = 0.98
+                else:
+                    fv = fv
+                
+                _, _, _, _, _, _, r_leaky = run_modified_seir_waning(y0, t, tv, beta, sigma, gamma, fv, eps, w, mode='leaky')
+                _, _, _, _, _, _, r_aon = run_modified_seir_waning(y0, t, tv, beta, sigma, gamma, fv, eps, w, mode='aon')
+
+                r_perc_leaky = (r[-1] - r_leaky[-1]) / r[-1] * 100
+                r_perc_aon = (r[-1] - r_aon[-1]) / r[-1] * 100
+                r_perc_diff = abs(r_perc_aon - r_perc_leaky)
+                
+                df_R0s.append(R0)
+                df_epss.append(eps)
+                df_fvs.append(fv)
+                df_covs.append(cov)
+                df_r_perc_leakys.append(r_perc_leaky)
+                df_r_perc_aons.append(r_perc_aon)
+                df_r_perc_diffs.append(r_perc_diff)
+                df_rs.append(r[-1])
+                df_rleakys.append(r_leaky[-1])
+                df_raons.append(r_aon[-1])
+
+    # build dataframe                        
+    data = {'R0': df_R0s, 'VE': df_epss, 'Vax Coverage': df_covs, 'fv': df_fvs, \
+        'Leaky': df_r_perc_leakys, 'AON': df_r_perc_aons, 'Diff': df_r_perc_diffs, \
+        'r': df_rs, 'r_leaky': df_rleakys, 'r_aon': df_raons}
     vax_df = pd.DataFrame(data=data)
 
     return vax_df
