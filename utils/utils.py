@@ -618,7 +618,7 @@ def plot_scenarios(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame, dim:
         return fig
 
 
-def run_scenarios_size(y0: list, t: np.ndarray, R0s: np.ndarray, sigma: float, gamma: float, \
+def run_scenarios_size_1(y0: list, t: np.ndarray, R0s: np.ndarray, sigma: float, gamma: float, \
     epss: np.ndarray, epidemic_size: int, measured: int): 
     s0, e0, i0, r0 = y0
     df_R0s = []; df_epss = []; df_fvs = []
