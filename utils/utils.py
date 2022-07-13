@@ -139,12 +139,12 @@ def run_modified_seir_ivp(y0: list, t: float, tv: float, beta: float, sigma: flo
         return s_vax, vs, vr, v, e_vax, i_vax, r_vax
     
     else:
-        sol = solve_ivp(seir_ivp, [0, t], y0, args=(beta, sigma, gamma), dense_output=True)
+        sol = solve_ivp(seir_ivp, [0, tv], y0, args=(beta, sigma, gamma), dense_output=True)
         s = sol.y[0]; e = sol.y[1]; i = sol.y[2]; r = sol.y[3]
 
         vs0 = (1-epsA)*fv*s[-1]; vr0 = epsA*fv*s[-1]; s0_vax = s[-1]*(1-fv)
         y0_vax = [s0_vax, vs0, vr0, e[-1], i[-1], r[-1]]
-        sol_vax = solve_ivp(modified_seir_ivp, [0, t], y0_vax, args=(beta, sigma, gamma, epsL), \
+        sol_vax = solve_ivp(modified_seir_ivp, [tv, t], y0_vax, args=(beta, sigma, gamma, epsL), \
             dense_output=True)
         s_vax = sol_vax.y[0]; vs = sol_vax.y[1]; vr = sol_vax.y[2]; e_vax = sol_vax.y[3]
         i_vax = sol_vax.y[4]; r_vax = sol_vax.y[5]
@@ -345,10 +345,10 @@ def run_scenarios_size(y0: list, t: int, size: float, R0s: np.ndarray, sigma: fl
     for R0 in R0s:
         beta = R0 * gamma
         sol = solve_ivp(seir_ivp, [0, t], y0, args=(beta, sigma, gamma), dense_output=True)
-        r = sol.y[3]; r10 = r[-1]*0.1; r25 = r[-1]*0.25
+        #r = sol.y[3]; r10 = r[-1]*0.1; r25 = r[-1]*0.25
 
-        def _reach_size10(t, y, beta, sigma, gamma): return y[3] - r10
-        def _reach_size25(t, y, beta, sigma, gamma): return y[3] - r25
+        def _reach_size10(t, y, beta, sigma, gamma): return y[3] - 0.1
+        def _reach_size25(t, y, beta, sigma, gamma): return y[3] - 0.25
 
         _reach_size10.terminate=True
         _reach_size25.terminate=True
@@ -367,39 +367,38 @@ def run_scenarios_size(y0: list, t: int, size: float, R0s: np.ndarray, sigma: fl
                         events=_reach_size25, dense_output=True)
 
                 if np.array(sol.t_events).size == 0:
-                    rmax_idx = np.argmax(np.array(sol.y[3]))
-                    s_temp = sol.y[0][rmax_idx]
-                    tv = np.array(sol.t)[rmax_idx]
+                    fc = 99999; fv = 99999; r_perc_leaky = 99999; r_perc_aon = 99999; r_perc_diff = 99999
                 else:
                     s_temp = np.ravel(np.array(sol.y_events[0]))[0]
                     tv = np.ravel(np.array(sol.t_events))[0]
-                fc = 1/eps * (1 - 1/(R0*s_temp))
-                t_new = tv + measured
-            
-            sol_vax = solve_ivp(seir_ivp, [0, t_new], y0, args=(beta, sigma, gamma), dense_output=True)
-            r_vax = sol_vax.y[3]
-                
+                    fc = 1/eps * (1 - 1/(R0*s_temp))
+                    t_new = tv + measured
+                        
             for cov in covs:
-                if cov == 'Below fc':
-                    fv = fc * 0.8
-                elif cov == 'Slightly Above fc':
-                    fv = 1 - ((1 - fc) * 0.8)
-                else:
-                    fv = 1 - ((1 - fc) * 0.5)
+                if fc != 99999:
+                    if cov == 'Below fc':
+                        fv = fc * 0.8
+                    elif cov == 'Slightly Above fc':
+                        fv = 1 - ((1 - fc) * 0.8)
+                    else:
+                        fv = 1 - ((1 - fc) * 0.5)
 
-                if fv < 0:
-                    fv = 0
-                elif fv > 0.98:
-                    fv = 0.98
-                else:
-                    fv = fv
-                
-                _, _, _, _, _, _, r_leaky = run_modified_seir_ivp(y0, t_new, tv, beta, sigma, gamma, fv, eps, mode='leaky')
-                _, _, _, _, _, _, r_aon = run_modified_seir_ivp(y0, t_new, tv, beta, sigma, gamma, fv, eps, mode='aon')
+                    if fv < 0:
+                        fv = 0
+                    elif fv > 0.98:
+                        fv = 0.98
+                    else:
+                        fv = fv
+                        
+                    sol_vax = solve_ivp(seir_ivp, [0, t_new], y0, args=(beta, sigma, gamma), dense_output=True)
+                    r_vax = sol_vax.y[3]
+                        
+                    _, _, _, _, _, _, r_leaky = run_modified_seir_ivp(y0, t_new, tv, beta, sigma, gamma, fv, eps, mode='leaky')
+                    _, _, _, _, _, _, r_aon = run_modified_seir_ivp(y0, t_new, tv, beta, sigma, gamma, fv, eps, mode='aon')
 
-                r_perc_leaky = (r_vax[-1] - r_leaky[-1]) / r_vax[-1] * 100
-                r_perc_aon = (r_vax[-1] - r_aon[-1]) / r_vax[-1] * 100
-                r_perc_diff = r_perc_aon - r_perc_leaky
+                    r_perc_leaky = (r_vax[-1] - r_leaky[-1]) / r_vax[-1] * 100
+                    r_perc_aon = (r_vax[-1] - r_aon[-1]) / r_vax[-1] * 100
+                    r_perc_diff = r_perc_aon - r_perc_leaky
 
                 df_R0s.append(R0)
                 df_epss.append(eps)
@@ -408,18 +407,14 @@ def run_scenarios_size(y0: list, t: int, size: float, R0s: np.ndarray, sigma: fl
                 df_r_perc_leakys.append(r_perc_leaky)
                 df_r_perc_aons.append(r_perc_aon)
                 df_r_perc_diffs.append(r_perc_diff)
-                df_rs.append(r_vax[-1])
-                df_rleakys.append(r_leaky[-1])
-                df_raons.append(r_aon[-1])
 
     # build dataframe                        
     data = {'R0': df_R0s, 'VE': df_epss, 'Vax Coverage': df_covs, 'fv': df_fvs, \
-        'Leaky': df_r_perc_leakys, 'AON': df_r_perc_aons, 'Diff': df_r_perc_diffs, \
-        'r': df_rs, 'r_leaky': df_rleakys, 'r_aon': df_raons}
+        'Leaky': df_r_perc_leakys, 'AON': df_r_perc_aons, 'Diff': df_r_perc_diffs}
     vax_df = pd.DataFrame(data=data)
 
     return vax_df
-
+    
 
 def run_scenarios_waning(y0: list, t: int, tv: int, R0s: np.ndarray, sigma: float, gamma: float, epss: np.ndarray, w: float):  
     s0, e0, i0, r0 = y0
@@ -618,103 +613,6 @@ def plot_scenarios(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame, dim:
         return fig
 
 
-def run_scenarios_size_1(y0: list, t: np.ndarray, R0s: np.ndarray, sigma: float, gamma: float, \
-    epss: np.ndarray, epidemic_size: int, measured: int): 
-    s0, e0, i0, r0 = y0
-    df_R0s = []; df_epss = []; df_fvs = []
-    covs = ['Below fc', 'Slightly Above fc', 'Above fc']; df_covs = []
-    df_r_perc_leakys = []; df_r_perc_aons = []; df_r_perc_diffs = []
-
-    for R0 in R0s:
-        beta = R0 * gamma
-        sim = odeint(seir, y0, t, args=(beta, sigma, gamma))
-        _, _, _, r = sim.T
-                
-        for eps in epss:
-            fc = 1/eps * (1 - 1/R0)
-            for cov in covs:
-                if cov == 'Below fc':
-                    fv = fc * 0.8
-                elif cov == 'Slightly Above fc':
-                    fv = 1 - ((1 - fc) * 0.8)
-                else:
-                    fv = 1 - ((1 - fc) * 0.5)
-
-                if epidemic_size == 0:
-                    tv = -1; s0_vax = 0.98-fv 
-                    t0 = np.linspace(0, measured, measured+1)
-
-                    sim0 = odeint(seir, y0, t0, args=(beta, sigma, gamma))
-                    _, _, _, r_novax = sim0.T
-
-                    r_tot = r_novax[-1]
-                
-                    # leaky
-                    vs0_leaky = 0; vr0_leaky = fv; y0_leaky = [s0_vax, vs0_leaky, vr0_leaky, e0, i0, r0]
-                    sim_leaky = run_modified_seir(y0_leaky, t0, tv, beta, sigma, gamma, fv, eps, mode = 'leaky')
-
-                    # aon
-                    vs0_aon = fv*(1-eps); vr0_aon = fv*eps; y0_aon = [s0_vax, vs0_aon, vr0_aon, e0, i0, r0]
-                    sim_aon = run_modified_seir(y0_aon, t0, tv, beta, sigma, gamma, fv, eps, mode = 'aon')   
-
-                elif epidemic_size == 10:
-                    vs0 = 0; vr0 = 0; y0_vax = [s0, vs0, vr0, e0, i0, r0]
-                    tv = t[r <= 0.1].astype(int)[-1] + 1
-                    t10 = np.linspace(0, tv+measured, tv+measured+1)
-
-                    sim10 = odeint(seir, y0, t10, args=(beta, sigma, gamma))
-                    _, _, _, r_novax = sim10.T
-
-                    r_tot = r_novax[-1]
-
-                    # leaky
-                    sim_leaky = run_modified_seir(y0_vax, t10, tv, beta, sigma, gamma, fv, eps, mode = 'leaky')
-
-                    # aon
-                    sim_aon = run_modified_seir(y0_vax, t10, tv, beta, sigma, gamma, fv, eps, mode = 'aon')
-                
-                elif epidemic_size == 25:
-                    vs0 = 0; vr0 = 0; y0_vax = [s0, vs0, vr0, e0, i0, r0]
-                    tv = t[r <= 0.25].astype(int)[-1] + 1
-                    t25 = np.linspace(0, tv+measured, tv+measured+1)
-
-                    sim25 = odeint(seir, y0, t25, args=(beta, sigma, gamma))
-                    _, _, _, r_novax = sim25.T
-
-                    r_tot = r_novax[-1]
-
-                    # leaky
-                    sim_leaky = run_modified_seir(y0_vax, t25, tv, beta, sigma, gamma, fv, eps, mode = 'leaky')
-
-                    # aon
-                    sim_aon = run_modified_seir(y0_vax, t25, tv, beta, sigma, gamma, fv, eps, mode = 'aon')
-                
-                _, _, _, _, _, _, r_leaky = sim_leaky
-                r_tot_leaky = r_leaky[-1]
-                r_perc_leaky = (r_tot - r_tot_leaky) / r_tot * 100
-
-                _, _, _, _, _, _, r_aon = sim_aon
-                r_tot_aon = r_aon[-1]
-                r_perc_aon = (r_tot - r_tot_aon) / r_tot * 100
-
-                r_perc_diff = r_perc_aon - r_perc_leaky
-
-                df_R0s.append(R0)
-                df_epss.append(eps)
-                df_fvs.append(fv)
-                df_covs.append(cov)
-                df_r_perc_leakys.append(r_perc_leaky)
-                df_r_perc_aons.append(r_perc_aon)
-                df_r_perc_diffs.append(r_perc_diff)
-
-    # build dataframe                        
-    data = {'R0': df_R0s, 'VE': df_epss, 'Vax Coverage': df_covs, 'fv': df_fvs, \
-        'Leaky': df_r_perc_leakys, 'AON': df_r_perc_aons, 'Diff': df_r_perc_diffs}
-    vax_df = pd.DataFrame(data=data)
-
-    return vax_df
-
-
 def plot_scenarios_size(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame, dim: int = 2):
     r0s = np.arange(1.0, 3.0, 0.01); epss = np.arange(0.01, 1.0, 0.01)
     plot_r0, plot_eps = np.nan_to_num(np.meshgrid(r0s, epss, indexing='ij'))
@@ -729,6 +627,10 @@ def plot_scenarios_size(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame,
     pre_slabove = np.nan_to_num(np.reshape(slabove_df1['Diff'].to_numpy(), np.shape(plot_r0)))
     pre_above = np.nan_to_num(np.reshape(above_df1['Diff'].to_numpy(), np.shape(plot_r0)))
 
+    pre_below = np.ma.masked_where(pre_below == 99999, pre_below)
+    pre_slabove = np.ma.masked_where(pre_slabove == 99999, pre_slabove)
+    pre_above = np.ma.masked_where(pre_above == 99999, pre_above)
+
     # post10
     below_df2 = df2[df2['Vax Coverage'] == 'Below fc']
     slabove_df2 = df2[df2['Vax Coverage'] == 'Slightly Above fc']
@@ -738,6 +640,10 @@ def plot_scenarios_size(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame,
     post10_slabove = np.nan_to_num(np.reshape(slabove_df2['Diff'].to_numpy(), np.shape(plot_r0)))
     post10_above = np.nan_to_num(np.reshape(above_df2['Diff'].to_numpy(), np.shape(plot_r0)))
 
+    post10_below = np.ma.masked_where(post10_below == 99999, post10_below)
+    post10_slabove = np.ma.masked_where(post10_slabove == 99999, post10_slabove)
+    post10_above = np.ma.masked_where(post10_above == 99999, post10_above)
+
     # post30
     below_df3 = df3[df3['Vax Coverage'] == 'Below fc']
     slabove_df3 = df3[df3['Vax Coverage'] == 'Slightly Above fc']
@@ -746,6 +652,10 @@ def plot_scenarios_size(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame,
     post30_below = np.nan_to_num(np.reshape(below_df3['Diff'].to_numpy(), np.shape(plot_r0)))    
     post30_slabove = np.nan_to_num(np.reshape(slabove_df3['Diff'].to_numpy(), np.shape(plot_r0)))
     post30_above = np.nan_to_num(np.reshape(above_df3['Diff'].to_numpy(), np.shape(plot_r0)))
+
+    post30_below = np.ma.masked_where(post30_below == 99999, post30_below)
+    post30_slabove = np.ma.masked_where(post30_slabove == 99999, post30_slabove)
+    post30_above = np.ma.masked_where(post30_above == 99999, post30_above)
 
     if dim == 3:
         fig, axes = plt.subplots(3,3, facecolor='w', figsize=(20,20), gridspec_kw=dict(width_ratios=[1,1,1]), \
