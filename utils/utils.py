@@ -270,12 +270,12 @@ def plot_timeseries(sim_novax, sim_leaky, sim_aon, figsize=(22, 10), savefig=Fal
     fig = plt.figure(facecolor='w', figsize=figsize)
 
     ax1 = fig.add_subplot(231, axisbelow=True)
-    ax1.plot(t, s_leaky, 'b', alpha=0.5, lw=2, label='$S$')
-    ax1.plot(t, i_leaky, 'r', alpha=0.5, lw=2, label='$I$')
-    ax1.plot(t, r_leaky, 'g', alpha=0.5, lw=2, label='$R$')
-    ax1.plot(t, v_leaky, 'y', alpha=0.5, lw=2, label='$V_{S} + V_{R}$')
-    ax1.plot(t, vs_leaky, 'y--', alpha=0.5, lw=2, label='$V_{S}$')
-    ax1.plot(t, vr_leaky, 'y:', alpha=0.5, lw=2, label='$V_{R}$')
+    ax1.plot(t, s_leaky, 'y', alpha=0.5, lw=2, label='$S$')
+    ax1.plot(t, v_leaky, 'tab:orange', alpha=0.5, lw=2, label='$V_{S} + V_{R}$')
+    ax1.plot(t, vs_leaky, 'tab:orange', ls='--', alpha=0.5, lw=2, label='$V_{S}$')
+    ax1.plot(t, vr_leaky, 'tab:orange', ls=':', alpha=0.5, lw=2, label='$V_{R}$')
+    ax1.plot(t, i_leaky, 'b', alpha=0.5, lw=2, label='$I$')
+    ax1.plot(t, r_leaky, 'r', alpha=0.5, lw=2, label='$R$')
     ax1.set_title("With Leaky Vaccine")
     ax1.set_ylim(0, 1)
     ax1.set_ylabel("Fraction of Population")
@@ -284,12 +284,12 @@ def plot_timeseries(sim_novax, sim_leaky, sim_aon, figsize=(22, 10), savefig=Fal
     legend = ax1.legend(loc='upper right'); legend.get_frame().set_alpha(0.5)
 
     ax2 = fig.add_subplot(232, axisbelow=True)
-    ax2.plot(t, s_aon, 'b', alpha=0.5, lw=2)
-    ax2.plot(t, i_aon, 'r', alpha=0.5, lw=2)
-    ax2.plot(t, r_aon, 'g', alpha=0.5, lw=2)
-    ax2.plot(t, v_aon, 'y', alpha=0.5, lw=2)
-    ax2.plot(t, vs_aon, 'y--', alpha=0.5, lw=2)
-    ax2.plot(t, vr_aon, 'y:', alpha=0.5, lw=2)
+    ax2.plot(t, s_aon, 'y', alpha=0.5, lw=2)
+    ax2.plot(t, v_aon, 'tab:orange', alpha=0.5, lw=2)
+    ax2.plot(t, vs_aon, 'tab:orange', ls='--', alpha=0.5, lw=2)
+    ax2.plot(t, vr_aon, 'tab:orange', ls=':', alpha=0.5, lw=2)
+    ax2.plot(t, i_aon, 'b', alpha=0.5, lw=2)
+    ax2.plot(t, r_aon, 'r', alpha=0.5, lw=2)
     ax2.set_title("With All-or-None Vaccine")
     ax2.set_ylim(0, 1)
     ax2.set_ylabel("Fraction of Population")
@@ -297,9 +297,9 @@ def plot_timeseries(sim_novax, sim_leaky, sim_aon, figsize=(22, 10), savefig=Fal
     ax2.grid(linewidth=0.5)
     
     ax3 = fig.add_subplot(233, axisbelow=True)
-    ax3.plot(t, s, 'b', alpha=0.5, lw=2)
-    ax3.plot(t, i, 'r', alpha=0.5, lw=2)
-    ax3.plot(t, r, 'g', alpha=0.5, lw=2)
+    ax3.plot(t, s, 'y', alpha=0.5, lw=2)
+    ax3.plot(t, i, 'b', alpha=0.5, lw=2)
+    ax3.plot(t, r, 'r', alpha=0.5, lw=2)
     ax3.set_title('Without Vaccine')
     ax3.set_ylabel('Fraction of Population')
     ax3.set_xlabel('Time (Days)')
@@ -307,9 +307,9 @@ def plot_timeseries(sim_novax, sim_leaky, sim_aon, figsize=(22, 10), savefig=Fal
     ax3.grid(linewidth=0.5)
     
     ax4 = fig.add_subplot(234, axisbelow=True)
-    ax4.plot(t, i_leaky, 'r--', alpha=0.5, lw=2, label='$I$ - Leaky')
-    ax4.plot(t, i_aon, 'r:', alpha=0.5, lw=2, label= '$I$ - AON')
-    ax4.plot(t, i, 'r', alpha=0.5, lw=2, label='$I$ - No Vax')
+    ax4.plot(t, i_leaky, 'b--', alpha=0.5, lw=2, label='$I$ - Leaky')
+    ax4.plot(t, i_aon, 'b:', alpha=0.5, lw=2, label= '$I$ - AON')
+    ax4.plot(t, i, 'b', alpha=0.5, lw=2, label='$I$ - No Vax')
     ax4.grid(linewidth=0.5)
     ax4.set_ylabel('Fraction of Population')
     ax4.set_xlabel('Time (Days)')
@@ -317,9 +317,9 @@ def plot_timeseries(sim_novax, sim_leaky, sim_aon, figsize=(22, 10), savefig=Fal
     legend = ax4.legend(); legend.get_frame().set_alpha(0.5)
 
     ax5 = fig.add_subplot(235, axisbelow=True)
-    ax5.plot(t, r_leaky, 'g--', alpha=0.5, lw=2, label='$R$ - Leaky')
-    ax5.plot(t, r_aon, 'g:', alpha=0.5, lw=2, label='$R$ - AON')
-    ax5.plot(t, r, 'g', alpha=0.5, lw=2, label='$R$ - No Vax')
+    ax5.plot(t, r_leaky, 'r--', alpha=0.5, lw=2, label='$R$ - Leaky')
+    ax5.plot(t, r_aon, 'r:', alpha=0.5, lw=2, label='$R$ - AON')
+    ax5.plot(t, r, 'r', alpha=0.5, lw=2, label='$R$ - No Vax')
     ax5.grid(linewidth=0.5)
     ax5.set_ylabel('Fraction of Population')
     ax5.set_xlabel('Time (Days)')
@@ -660,47 +660,46 @@ def plot_scenarios(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame, dim:
 
         # Pre-transmission
         surf1 = axes[0,0].plot_surface(plot_r0, plot_eps, np.log(pre_below+1), rstride=1, norm=norm, cstride=1, cmap='viridis')
-        axes[0,0].set_title('Pre | Below $f^*_V$')
+        axes[0,0].set_title('Pre | $f_{V, Below}$')
 
         axes[0,1].plot_surface(plot_r0, plot_eps, np.log(pre_slabove+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[0,1].set_title('Pre | Slightly Above $f^*_V$')
+        axes[0,1].set_title('Pre | $f_{V, Slightly Above}$')
 
         axes[0,2].plot_surface(plot_r0, plot_eps, np.log(pre_above+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[0,2].set_title('Pre | Above $f^*_V$')
-        axes[0,2].set_zlabel('$log(P_A - P_L + 1)$')
+        axes[0,2].set_title('Pre | $f_{V, Above}$')
 
 
         # 10 days post-tranmission
         axes[1,0].plot_surface(plot_r0, plot_eps, np.log(post10_below+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[1,0].set_title('10 Days Post | Below $f^*_V$')
+        axes[1,0].set_title('10 Days Post | $f_{V, Below}$')
 
         axes[1,1].plot_surface(plot_r0, plot_eps, np.log(post10_slabove+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[1,1].set_title('10 Days Post | Slightly Above $f^*_V$')
+        axes[1,1].set_title('10 Days Post | $f_{V, Slightly Above}$')
 
         axes[1,2].plot_surface(plot_r0, plot_eps, np.log(post10_above+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[1,2].set_title('10 Days Post | Above $f^*_V$')
-        axes[1,2].set_zlabel('$log(P_A - P_L + 1)$')
+        axes[1,2].set_title('10 Days Post | $f_{V, Above}$')
 
         # 30 days post-transmission
         axes[2,0].plot_surface(plot_r0, plot_eps, np.log(post30_below+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[2,0].set_title('30 Days Post | Below $f^*_V$')
+        axes[2,0].set_title('30 Days Post | $f_{V, Below}$')
 
         axes[2,1].plot_surface(plot_r0, plot_eps, np.log(post30_slabove+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[2,1].set_title('30 Days Post | Slightly Above $f^*_V$')
+        axes[2,1].set_title('30 Days Post | $f_{V, Slightly Above}$')
 
         axes[2,2].plot_surface(plot_r0, plot_eps, np.log(post30_above+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[2,2].set_title('30 Days Post | Above $f^*_V$')
-        axes[2,2].set_zlabel('$log(P_A - P_L + 1)$')
+        axes[2,2].set_title('30 Days Post | $f_{V, Above}$')
 
         axs = np.array(axes)
         for ax in axs.reshape(-1):
-            ax.set_xlabel('$R_{0,V}$')
+            ax.set_xlabel('$R_0$')
             ax.set_ylabel('Vaccine Efficacy')
-            ax.view_init(elev=30, azim=120)
+            ax.view_init(elev=30, azim=240)
+            ax.set_zlabel('$log(abs(P_A - P_L) + 1)$', rotation=180)
 
         cb = fig.colorbar(mappable=surf1, ax=axes, fraction=0.02, shrink=0.5)
         cblabels = np.interp(cb.ax.get_yticks(), cb.ax.get_ylim(), surf1.get_clim())
         cb.ax.set_yticklabels(np.round(np.exp(cblabels)-1).astype(int))
+        cb.set_label('Difference in Total Effectiveness (%)')
     
         return fig
     
@@ -712,45 +711,46 @@ def plot_scenarios(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame, dim:
 
         # Pre-transmission 
         proj = axes[0,0].contourf(plot_r0, plot_eps, np.log(pre_below+1), norm=norm, cmap='viridis')
-        axes[0,0].set_title('Pre | Below $f^*_V$')
+        axes[0,0].set_title('Pre | $f_{V, Below}$')
         axes[0,0].set_ylabel('Vaccine Efficacy')
 
         axes[0,1].contourf(plot_r0, plot_eps, np.log(pre_slabove+1), norm=norm, cmap='viridis')
-        axes[0,1].set_title('Pre | Slightly Above $f^*_V$')
+        axes[0,1].set_title('Pre | $f_{V, Slightly Above}$')
 
         #ax3 = fig.add_subplot(133)
         axes[0,2].contourf(plot_r0, plot_eps, np.log(pre_above+1), norm=norm, cmap='viridis')
-        axes[0,2].set_title('Pre | Above $f^*_V$')
+        axes[0,2].set_title('Pre | $f_{V, Above}$')
 
         # 10 days post-transmission
         axes[1,0].contourf(plot_r0, plot_eps, np.log(post10_below+1), norm=norm, cmap='viridis')
-        axes[1,0].set_title('10 Days Post | Below $f^*_V$')
+        axes[1,0].set_title('10 Days Post | $f_{V, Below}$')
         axes[1,0].set_ylabel('Vaccine Efficacy')
 
         axes[1,1].contourf(plot_r0, plot_eps, np.log(post10_slabove+1), norm=norm, cmap='viridis')
-        axes[1,1].set_title('10 Days Post | Slightly Above $f^*_V$')
+        axes[1,1].set_title('10 Days Post | $f_{V, Slightly Above}$')
 
         axes[1,2].contourf(plot_r0, plot_eps, np.log(post10_above+1), norm=norm, cmap='viridis')
-        axes[1,2].set_title('10 Days Post | Above $f^*_V$')
+        axes[1,2].set_title('10 Days Post | $f_{V, Above}$')
 
         # 30 days post-transmission
         axes[2,0].contourf(plot_r0, plot_eps, np.log(post30_below+1), norm=norm, cmap='viridis')
-        axes[2,0].set_title('30 Days Post | Below $f^*_V$')
+        axes[2,0].set_title('30 Days Post | $f_{V, Below}$')
         axes[2,0].set_ylabel('Vaccine Efficacy')
-        axes[2,0].set_xlabel('$R_{0,V}$')
+        axes[2,0].set_xlabel('$R_0$')
 
         axes[2,1].contourf(plot_r0, plot_eps, np.log(post30_slabove+1), norm=norm, cmap='viridis')
-        axes[2,1].set_title('30 Days Post | Slightly Above $f^*_V$')
+        axes[2,1].set_title('30 Days Post | $f_{V, Slightly Above}$')
         axes[2,1].set_xlabel('$R_{0,V}$')
 
         axes[2,2].contourf(plot_r0, plot_eps, np.log(post30_above+1), norm=norm, cmap='viridis')
-        axes[2,2].set_title('30 Days Post | Above $f^*_V$')
-        axes[2,2].set_xlabel('$R_{0,V}$')
+        axes[2,2].set_title('30 Days Post | $f_{V, Above}$')
+        axes[2,2].set_xlabel('$R_0$')
 
         fig.tight_layout(pad=0.1)
         cb = fig.colorbar(mappable=proj, ax=axes, fraction=0.02, shrink=0.5)
         cblabels = np.interp(cb.ax.get_yticks(), cb.ax.get_ylim(), proj.get_clim())
         cb.ax.set_yticklabels(np.round(np.exp(cblabels)-1).astype(int))
+        cb.set_label('Difference in Total Effectiveness (%)')
         
         return fig
 
@@ -806,47 +806,46 @@ def plot_scenarios_size(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame,
 
         # Pre-transmission
         surf1 = axes[0,0].plot_surface(plot_r0, plot_eps, np.log(pre_below+1), rstride=1, norm=norm, cstride=1, cmap='viridis')
-        axes[0,0].set_title('0% | Below $f^*_V$')
+        axes[0,0].set_title('0% | $f_{V, Below}$')
 
         axes[0,1].plot_surface(plot_r0, plot_eps, np.log(pre_slabove+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[0,1].set_title('0% | Slightly Above $f^*_V$')
+        axes[0,1].set_title('0% | $f_{V, Slightly Above}$')
 
         axes[0,2].plot_surface(plot_r0, plot_eps, np.log(pre_above+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[0,2].set_title('0% | Above $f^*_V$')
-        axes[0,2].set_zlabel('$log(P_A - P_L + 1)$')
+        axes[0,2].set_title('0% | $f_{V, Above}$')
 
 
         # 10 days post-tranmission
         axes[1,0].plot_surface(plot_r0, plot_eps, np.log(post10_below+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[1,0].set_title('10% | Below $f^*_V$')
+        axes[1,0].set_title('10% | $f_{V, Below}$')
 
         axes[1,1].plot_surface(plot_r0, plot_eps, np.log(post10_slabove+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[1,1].set_title('10% | Slightly Above $f^*_V$')
+        axes[1,1].set_title('10% | $f_{V, Slightly Above}$')
 
         axes[1,2].plot_surface(plot_r0, plot_eps, np.log(post10_above+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[1,2].set_title('10% | Above $f^*_V$')
-        axes[1,2].set_zlabel('$log(P_A - P_L + 1)$')
+        axes[1,2].set_title('10% | $f_{V, Above}$')
 
         # 30 days post-transmission
         axes[2,0].plot_surface(plot_r0, plot_eps, np.log(post30_below+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[2,0].set_title('25% | Below $f^*_V$')
+        axes[2,0].set_title('25% | $f_{V, Below}$')
 
         axes[2,1].plot_surface(plot_r0, plot_eps, np.log(post30_slabove+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[2,1].set_title('25% | Slightly Above $f^*_V$')
+        axes[2,1].set_title('25% | $f_{V, Slightly Above}$')
 
         axes[2,2].plot_surface(plot_r0, plot_eps, np.log(post30_above+1), norm=norm, rstride=1, cstride=1, cmap='viridis')
-        axes[2,2].set_title('25% | Above $f^*_V$')
-        axes[2,2].set_zlabel('$log(P_A - P_L + 1)$')
+        axes[2,2].set_title('25% | $f_{V, Above}$')
 
         axs = np.array(axes)
         for ax in axs.reshape(-1):
-            ax.set_xlabel('$R_{0,V}$')
+            ax.set_xlabel('$R_0$')
             ax.set_ylabel('Vaccine Efficacy')
-            ax.view_init(elev=30, azim=120)
+            ax.view_init(elev=30, azim=240)
+            ax.set_zlabel('$log(P_A - P_L + 1)$', rotation=180)
 
         cb = fig.colorbar(mappable=surf1, ax=axes, fraction=0.02, shrink=0.5)
         cblabels = np.interp(cb.ax.get_yticks(), cb.ax.get_ylim(), surf1.get_clim())
         cb.ax.set_yticklabels(np.round(np.exp(cblabels)-1).astype(int))
+        cb.set_label('Difference in Total Effectiveness (%)')
     
         return fig
     
@@ -858,45 +857,46 @@ def plot_scenarios_size(df1: pd.DataFrame, df2: pd.DataFrame, df3: pd.DataFrame,
 
         # Pre-transmission 
         proj = axes[0,0].contourf(plot_r0, plot_eps, np.log(pre_below+1), norm=norm, cmap='viridis')
-        axes[0,0].set_title('0% | Below $f^*_V$')
+        axes[0,0].set_title('0% | $f_{V, Below}$')
         axes[0,0].set_ylabel('Vaccine Efficacy')
 
         axes[0,1].contourf(plot_r0, plot_eps, np.log(pre_slabove+1), norm=norm, cmap='viridis')
-        axes[0,1].set_title('0% | Slightly Above $f^*_V$')
+        axes[0,1].set_title('0% | $f_{V, Slightly Above}$')
 
         #ax3 = fig.add_subplot(133)
         axes[0,2].contourf(plot_r0, plot_eps, np.log(pre_above+1), norm=norm, cmap='viridis')
-        axes[0,2].set_title('0% | Above $f^*_V$')
+        axes[0,2].set_title('0% | $f_{V, Above}$')
 
         # 10 days post-transmission
         axes[1,0].contourf(plot_r0, plot_eps, np.log(post10_below+1), norm=norm, cmap='viridis')
-        axes[1,0].set_title('10% | Below $f^*_V$')
+        axes[1,0].set_title('10% | $f_{V, Below}$')
         axes[1,0].set_ylabel('Vaccine Efficacy')
 
         axes[1,1].contourf(plot_r0, plot_eps, np.log(post10_slabove+1), norm=norm, cmap='viridis')
-        axes[1,1].set_title('10% | Slightly Above $f^*_V$')
+        axes[1,1].set_title('10% | $f_{V, Slightly Above}$')
 
         axes[1,2].contourf(plot_r0, plot_eps, np.log(post10_above+1), norm=norm, cmap='viridis')
-        axes[1,2].set_title('10% | Above $f^*_V$')
+        axes[1,2].set_title('10% | $f_{V, Above}$')
 
         # 30 days post-transmission
         axes[2,0].contourf(plot_r0, plot_eps, np.log(post30_below+1), norm=norm, cmap='viridis')
-        axes[2,0].set_title('30%  | Below $f^*_V$')
+        axes[2,0].set_title('30%  | $f_{V, Below}$')
         axes[2,0].set_ylabel('Vaccine Efficacy')
-        axes[2,0].set_xlabel('$R_{0,V}$')
+        axes[2,0].set_xlabel('$R_0$')
 
         axes[2,1].contourf(plot_r0, plot_eps, np.log(post30_slabove+1), norm=norm, cmap='viridis')
-        axes[2,1].set_title('30% | Slightly Above $f^*_V$')
-        axes[2,1].set_xlabel('$R_{0,V}$')
+        axes[2,1].set_title('30% | $f_{V, Slightly Above}$')
+        axes[2,1].set_xlabel('$R_0$')
 
         axes[2,2].contourf(plot_r0, plot_eps, np.log(post30_above+1), norm=norm, cmap='viridis')
-        axes[2,2].set_title('30% | Above $f^*_V$')
-        axes[2,2].set_xlabel('$R_{0,V}$')
+        axes[2,2].set_title('30% | $f_{V, Above}$')
+        axes[2,2].set_xlabel('$R_0$')
 
         fig.tight_layout(pad=0.1)
         cb = fig.colorbar(mappable=proj, ax=axes, fraction=0.02, shrink=0.5)
         cblabels = np.interp(cb.ax.get_yticks(), cb.ax.get_ylim(), proj.get_clim())
         cb.ax.set_yticklabels(np.round(np.exp(cblabels)-1).astype(int))
+        cb.set_label('Difference in Total Effectiveness (%)')
         
         return fig
 
