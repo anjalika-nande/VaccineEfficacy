@@ -3,6 +3,7 @@ from scipy.integrate import odeint, solve_ivp
 import matplotlib.pyplot as plt
 import pandas as pd
 from tqdm import tqdm
+import math
 
 def seir (y, t, beta, sigma, gamma):
     """
@@ -168,6 +169,7 @@ def run_modified_seir_ivp(
             y0_vax,
             args=(beta, sigma, gamma, epsL),
             dense_output=True,
+            t_eval=np.linspace(0, t, t+1)
         )
         s_vax = sol_vax.y[0]
         vs = sol_vax.y[1]
@@ -180,12 +182,19 @@ def run_modified_seir_ivp(
         return s_vax, vs, vr, v, e_vax, i_vax, r_vax
 
     else:
+        if math.floor(tv) == tv:
+            t_eval1 = np.linspace(0, tv, tv+1)
+            t_eval2 = np.linspace(tv, t, t-tv+1)
+        else:
+            t_eval1 = np.append(np.linspace(0, math.floor(tv), math.floor(tv)+1), [tv])
+            t_eval2 = np.linspace(math.floor(tv)+1, t, t-math.floor(tv)+1)
         sol = solve_ivp(
             seir_ivp,
             [0, tv],
             y0,
             args=(beta, sigma, gamma),
             dense_output=True,
+            t_eval = t_eval1
         )
         s = sol.y[0]
         e = sol.y[1]
@@ -204,6 +213,7 @@ def run_modified_seir_ivp(
             y0_vax,
             args=(beta, sigma, gamma, epsL),
             dense_output=True,
+            t_eval = t_eval2
         )
         s_vax = sol_vax.y[0]
         vs = sol_vax.y[1]
