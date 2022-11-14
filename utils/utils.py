@@ -95,6 +95,22 @@ def modified_seir_ivp_waning(t, y, beta, sigma, gamma, epsL, w):
     return [dsdt, dvsdt, dvrdt, dedt, didt, drdt]
 
 
+def modified_seir_ivp_cont(t, y, beta, sigma, gamma, v, fv, epsL, epsA):
+    """
+    Modified SEIR model for continuous vaccination. 
+    """
+    s, vs, vr, e, i, r = y
+    
+    dsdt = - beta*s*i - v*(1-(vs+vr)/fv)*s
+    dvsdt = (1 - epsA)*v*(1-(vs+vr)/fv)*s - beta*vs*i
+    dvrdt = epsA*v*(1-(vs+vr)/fv)*s - beta*(1-epsL)*vr*i
+    dedt = beta*(s+vs+(1-epsL)*vr)*i - sigma*e
+    didt = sigma*e - gamma*i
+    drdt = gamma*i
+
+    return [dsdt, dvsdt, dvrdt, dedt, didt, drdt]
+
+
 def run_modified_seir(y0: list, t: int, tv: int, beta: float, sigma: float, gamma: float, fv: float, \
     eps: float, mode: str = 'leaky'):
     s0, e0, i0, r0 = y0
@@ -212,6 +228,100 @@ def run_modified_seir_ivp(
             [tv, t],
             y0_vax,
             args=(beta, sigma, gamma, epsL),
+            dense_output=True,
+            t_eval = t_eval2
+        )
+        s_vax = sol_vax.y[0]
+        vs = sol_vax.y[1]
+        vr = sol_vax.y[2]
+        e_vax = sol_vax.y[3]
+        i_vax = sol_vax.y[4]
+        r_vax = sol_vax.y[5]
+        v = vs + vr
+
+        s_vax = np.concatenate((s[:-1], s_vax), axis=None)
+        vs = np.concatenate((np.zeros(np.shape(s[:-1])), vs), axis=None)
+        vr = np.concatenate((np.zeros(np.shape(s[:-1])), vr), axis=None)
+        v = np.concatenate((np.zeros(np.shape(s[:-1])), v), axis=None)
+        e_vax = np.concatenate((e[:-1], e_vax), axis=None)
+        i_vax = np.concatenate((i[:-1], i_vax), axis=None)
+        r_vax = np.concatenate((r[:-1], r_vax), axis=None)
+
+        return s_vax, vs, vr, v, e_vax, i_vax, r_vax
+
+
+def run_modified_seir_ivp_cont(
+    y0: list,
+    t: float,
+    tv: float,
+    beta: float,
+    sigma: float,
+    gamma: float,
+    fv: float,
+    eps: float,
+    v: float,
+    mode: str = "leaky",
+):
+    s0, e0, i0, r0 = y0
+    if mode == "leaky":
+        epsL = eps
+        epsA = 1
+    elif mode == "aon":
+        epsL = 1
+        epsA = eps
+    else:
+        print("Mode must be 'leaky' or 'aon'.")
+
+    if tv == -1:
+        vs0 = 0
+        vr0 = 0
+        y0_vax = [s0, vs0, vr0, e0, i0, r0]
+        sol_vax = solve_ivp(
+            modified_seir_ivp_cont,
+            [0, t],
+            y0_vax,
+            args=(beta, sigma, gamma, v, fv, epsL, epsA),
+            dense_output=True,
+            t_eval=np.linspace(0, t, t+1)
+        )
+        s_vax = sol_vax.y[0]
+        vs = sol_vax.y[1]
+        vr = sol_vax.y[2]
+        e_vax = sol_vax.y[3]
+        i_vax = sol_vax.y[4]
+        r_vax = sol_vax.y[5]
+        v = vs + vr
+
+        return s_vax, vs, vr, v, e_vax, i_vax, r_vax
+
+    else:
+        if math.floor(tv) == tv:
+            t_eval1 = np.linspace(0, tv, tv+1)
+            t_eval2 = np.linspace(tv, t, t-tv+1)
+        else:
+            t_eval1 = np.append(np.linspace(0, math.floor(tv), math.floor(tv)+1), [tv])
+            t_eval2 = np.linspace(math.floor(tv)+1, t, t-math.floor(t)+1)
+        sol = solve_ivp(
+            seir_ivp,
+            [0, tv],
+            y0,
+            args=(beta, sigma, gamma),
+            dense_output=True,
+            t_eval = t_eval1
+        )
+        s = sol.y[0]
+        e = sol.y[1]
+        i = sol.y[2]
+        r = sol.y[3]
+
+        vs0 = 0
+        vr0 = 0
+        y0_vax = [s[-1], vs0, vr0, e[-1], i[-1], r[-1]]
+        sol_vax = solve_ivp(
+            modified_seir_ivp_cont,
+            [tv, t],
+            y0_vax,
+            args=(beta, sigma, gamma, v, fv, epsL, epsA),
             dense_output=True,
             t_eval = t_eval2
         )
