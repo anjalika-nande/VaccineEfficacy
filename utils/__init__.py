@@ -1,4 +1,4 @@
-from .utils import(
+from .utils import (
     seir,
     modified_seir,
     modified_seir_cont,
