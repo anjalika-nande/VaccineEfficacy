@@ -380,6 +380,8 @@ def run_scenarios(
     w: float,
     epss: np.ndarray,
     measured: int,
+    vax_mode: str = 'inst',
+    v: float = None,
 ):
     """
     Run scenarios (defined in Scenarios/1_Scenarios.ipynb) with varying R0 and 
@@ -414,6 +416,13 @@ def run_scenarios(
         A vaccine that is 50% effective would have an epsilon value of 0.5 For a 
         leaky vaccine, (epsL, epsA) = (eps, 1), and for an all-or-nothing vaccine, 
         (epsL, epsA) = (1, eps).
+    vax_mode: str (Default: 'inst')
+        'inst' indicates instantaneous vaccination while 'cont' indicates
+        continuous vaccination. If 'inst', 'v' should be None. If 'cont', 'v'
+        should be a float.
+    v: float (Default: None)
+        Maximum vaccination rate. Only applicable when 'vax_mode='cont''.
+    
     
     Returns
     -------
@@ -525,15 +534,42 @@ def run_scenarios(
                     )
                     r_vax = sol_vax.y[3]
 
-                    # with vaccination - leaky
-                    _, _, _, _, _, _, r_leaky, _, _ = run_modified_seir(
-                        y0, t_new, tv, beta, sigma, gamma, w, fv, eps, mode="leaky"
-                    )
+                    # instantaneous vaccination
+                    if (vax_mode == "inst") & (v is None):
+                        # with vaccination - leaky
+                        _, _, _, _, _, _, r_leaky, _, _ = run_modified_seir(
+                            y0, t_new, tv, beta, sigma, gamma, w, fv, eps, mode="leaky"
+                        )
 
-                    # with vaccination - all-or-nothing
-                    _, _, _, _, _, _, r_aon, _, _ = run_modified_seir(
-                        y0, t_new, tv, beta, sigma, gamma, w, fv, eps, mode="aon"
-                    )
+                        # with vaccination - all-or-nothing
+                        _, _, _, _, _, _, r_aon, _, _ = run_modified_seir(
+                            y0, t_new, tv, beta, sigma, gamma, w, fv, eps, mode="aon"
+                        )
+
+                    # continuous vaccination
+                    elif (vax_mode == "cont") & (v is not None):
+                        # with vaccination - leaky
+                        _, _, _, _, _, _, r_leaky, _, _ = run_modified_seir_cont(
+                            y0,
+                            t_new,
+                            tv,
+                            beta,
+                            sigma,
+                            gamma,
+                            w,
+                            fv,
+                            eps,
+                            v,
+                            mode="leaky",
+                        )
+
+                        # with vaccination - all-or-nothing
+                        _, _, _, _, _, _, r_aon, _, _ = run_modified_seir_cont(
+                            y0, t_new, tv, beta, sigma, gamma, w, fv, eps, v, mode="aon"
+                        )
+                    else:
+                        msg = "'vax_mode' must be either 'inst' with 'v=None' or 'cont' with 'v' of type float."
+                        raise ValueError(msg)
 
                     # calculate percentage reduction of total recovered population
                     r_perc_leaky = (r_vax[-1] - r_leaky[-1]) / r_vax[-1] * 100

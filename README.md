@@ -24,8 +24,10 @@ Here we include a general overview of each of the folders included in the reposi
     - 2_Models_time-series.ipynb: Time-series plots of infected population, recovered population, and cumulative infections using models described in 1_Models.ipynb.
 - Scenarios
     - 1_Scenarios.ipynb: 3D surface plots and 2d contour plots based on the difference in percentage reduction of the total recovered population of leaky and all-or-nothing vaccines compared to that of without vaccination for 9 scenarios. The scenarios differ in vaccination timing - at 0%, 10%, or 25% epidemic size - and the fraction of the population that is vaccinated - 50%, 75%, or 100% of the remaining susceptible population. Each scenario is run with $R_0$ values varying from 1.0 to 3.0 and with vaccine efficacy values varying from 0.01 to 1.0. The difference is measured 30 days, 60 days, 100 days, and 200 days after vaccination. We assume that vaccination is instantaneous, no reinfection occurs, and vaccine efficacy does not wane overtime.
-    - 2_Scenarios_waning.ipynb: Same as 1_Scenarios.ipynb, except we introduce a constant vaccine waning rate.
+    - 2_Scenarios_waning.ipynb: Run same scenarios as 1_Scenarios.ipynb with waning vaccine efficacy.
     - 3_Scenarios_comparison.ipynb: Plots comparing the difference in percentage reduction between leaky and all-or-nothing vaccines for when we assume vaccine efficacy does or does not wane overtime. Two vacccine efficacy values are investigated - 0.5 and 0.8. All other assumptions remain the same. 
+    - 4_Scenarios_cont.ipynb: Run same scenarios as 1_Scenarios.ipynb with continuous vaccination.
+    - 5_Scenarios_cont.ipynb: Run same scenarios as 1_Scenarios.ipynb with continuous vaccination and waning vaccine efficacy.
 - Examples
     - Examples.ipynb: Time-series plots of infected population, recovered population, and cumulative infections using both instantaneous and continuous vaccination models with parameters derived from real-life scenarios.
 - Appendix
