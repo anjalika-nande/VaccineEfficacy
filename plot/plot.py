@@ -100,6 +100,7 @@ def plot_timeseries(sim_novax, sim_leaky, sim_aon, figsize=(22, 10)):
     ax5.set_ylabel("Fraction of Population")
     ax5.set_xlabel("Time (Days)")
     ax5.set_title("Comparing Recovered Population")
+    ax5.set_ylim(0, 1)
     legend = ax5.legend()
     legend.get_frame().set_alpha(0.5)
 
@@ -167,6 +168,7 @@ def plot_timeseries_cat(sim_novax, sim_leaky, sim_aon, figsize=(15, 6)):
     ax2.set_title("Comparing Recovered Population and Cumulative Infected Population")
     ax2.set_ylabel("Fraction of Population")
     ax2.set_xlabel("Time (Days)")
+    ax2.set_ylim(0, 1)
     ax2.grid(linewidth=0.5)
     legend = ax2.legend()
     legend.get_frame().set_alpha(0.5)
