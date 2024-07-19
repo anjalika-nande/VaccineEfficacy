@@ -317,7 +317,7 @@ def run_modified_seir_cont(
             t_eval1 = np.append(
                 np.linspace(0, math.floor(tv), math.floor(tv) + 1), [tv]
             )
-            t_eval2 = np.linspace(math.floor(tv) + 1, t, t - math.floor(t) + 1)
+            t_eval2 = np.linspace(math.floor(tv) + 1, t, t - math.floor(tv) + 1)
 
         # solve seir for [0, tv]
         sol = solve_ivp(

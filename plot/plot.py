@@ -100,7 +100,6 @@ def plot_timeseries(sim_novax, sim_leaky, sim_aon, figsize=(22, 10)):
     ax5.set_ylabel("Fraction of Population")
     ax5.set_xlabel("Time (Days)")
     ax5.set_title("Comparing Recovered Population")
-    ax5.set_ylim(0, 1)
     legend = ax5.legend()
     legend.get_frame().set_alpha(0.5)
 
@@ -168,7 +167,64 @@ def plot_timeseries_cat(sim_novax, sim_leaky, sim_aon, figsize=(15, 6)):
     ax2.set_title("Comparing Recovered Population and Cumulative Infected Population")
     ax2.set_ylabel("Fraction of Population")
     ax2.set_xlabel("Time (Days)")
-    ax2.set_ylim(0, 1)
+    ax2.grid(linewidth=0.5)
+    legend = ax2.legend()
+    legend.get_frame().set_alpha(0.5)
+
+    return fig
+
+def plot_timeseries_cat_2(sim_novax, sim_leaky, sim_aon, figsize=(15, 6)):
+    """
+    Plot time-series plots for I and R, comparing models with a leaky vaccine,
+    an all-or-nothing vaccine, and no vaccination. The first subplot shows 
+    the infected population, and the second subplot shows the recovered
+    population.
+
+    Parameters
+    ----------
+    sim_novax: np.ndarrays
+        Output from using ``scipy.integrate.solve_ivp`` to solve ``utils.seir``.
+    sim_leaky: np.ndarrays
+        Output from ``utils.run_modified_seir`` with ``mode='leaky'``.
+    sim_aon: np.ndarrays
+        Output from ``utils.run_modified_seir`` with ``mode='aon'``.
+    figsize: tuple (Default: (15, 6))
+        Size of figure.
+    
+    Returns
+    -------
+    fig: matplotlib.pyplot.figure
+    """
+    # parse inputs
+    _, _, i, r = sim_novax
+    _, _, _, _, _, i_leaky, r_leaky, cv_leaky, cu_leaky = sim_leaky
+    _, _, _, _, _, i_aon, r_aon, cv_aon, cu_aon = sim_aon
+
+    # get t
+    t = np.linspace(0, len(i) - 1, len(i))
+
+    # intialize figure
+    fig = plt.figure(facecolor="w", figsize=figsize)
+
+    # comparing infected population
+    ax1 = fig.add_subplot(121, axisbelow=True)
+    ax1.plot(t, i, "r", alpha=0.5, lw=2, label="$I$ - No Vax")
+    ax1.plot(t, i_leaky, "b", alpha=0.5, lw=2, label="$I$ - Leaky")
+    ax1.plot(t, i_aon, "g", alpha=0.5, lw=2, label="$I$ - AON")
+    ax1.set_ylabel("Prevalence")
+    ax1.set_xlabel("Time (Days)")
+    ax1.grid(linewidth=0.5)
+    legend = ax1.legend()
+    legend.get_frame().set_alpha(0.5)
+
+    # comparing recovered population and cumulative infections from V, S
+    ax2 = fig.add_subplot(122, axisbelow=True)
+    ax2.plot(t, r, "r", alpha=0.5, lw=2, label="$R$ - No Vax")
+    ax2.plot(t, r_leaky, "b", alpha=0.5, lw=2, label="$R$ - Leaky")
+    ax2.plot(t, r_aon, "g", alpha=0.5, lw=2, label="$R$ - AON")
+    ax2.set_ylabel("Cumulative incidence")
+    ax2.set_xlabel("Time (Days)")
+    ax2.set_ylim(0,1)
     ax2.grid(linewidth=0.5)
     legend = ax2.legend()
     legend.get_frame().set_alpha(0.5)
