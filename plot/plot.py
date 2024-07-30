@@ -240,6 +240,7 @@ def plot_scenarios(
     epss: np.ndarray,
     dim: int = 2,
     mask_hit: bool = False,
+    common_scale: bool = False,
 ):
     """
     Plot difference in percentage reduction of total recovered population between
@@ -269,6 +270,9 @@ def plot_scenarios(
     mask_hit: boolean (Default: False)
         If ``mask_hit=True``, only scenarios where fv < fv* are shown. If 
         ``mask_hit=False``, all scenarios are shown. 
+    common_scale: boolean (Default: False)
+        If ``common_scale=True``, min and max of colorbar is scaled according to the range of the instantaneous 
+        case min = 0, max = 31. If False, min and max chosen according to the data being plotted.
     
     Returns
     -------
@@ -320,16 +324,21 @@ def plot_scenarios(
             i += 1
 
     # find min and max values to normalize colormap
-    min_diff = 9999999
-    max_diff = -9999999
-    for df in plot_dfs:
-        temp_min = np.min(df)
-        if temp_min < min_diff:
-            min_diff = temp_min
+    
+    if common_scale:
+        min_diff = 0
+        max_diff = 31
+    else:
+        min_diff = 9999999
+        max_diff = -9999999
+        for df in plot_dfs:
+            temp_min = np.min(df)
+            if temp_min < min_diff:
+                min_diff = temp_min
 
-        temp_max = np.max(df)
-        if temp_max > max_diff:
-            max_diff = temp_max
+            temp_max = np.max(df)
+            if temp_max > max_diff:
+                max_diff = temp_max
 
     covs_str = ["50%", "75%", "100%"] * 3
     tvs_str = ["0"] * 3 + ["0.10"] * 3 + ["0.25"] * 3
@@ -423,6 +432,214 @@ def plot_scenarios(
         cb = fig.colorbar(mappable=im, ax=axes, fraction=0.02, shrink=0.5)
         cblabels = np.interp(cb.ax.get_yticks(), cb.ax.get_ylim(), im.get_clim())
         cb.ax.set_yticklabels(np.round(np.exp(cblabels) - 1).astype(int))
+        cb.set_label("Difference in Percentage Reduction (%)")
+
+        return fig
+
+def plot_scenarios_vary_vmax(
+    df1: pd.DataFrame,
+    df2: pd.DataFrame,
+    df3: pd.DataFrame,
+    R0s: np.ndarray,
+    epss: np.ndarray,
+    dim: int = 2,
+    mask_hit: bool = False,
+    common_scale: bool = False,
+):
+    """
+    Plot difference in percentage reduction of total recovered population between
+    leaky and all-or-nothing vaccines compared to that of without vaccination for
+    all scenarios (defined in Scenarios/1_Scenarios.ipynb). The plots are 
+    log-scaled while the colorbars show the actual values before transformation. This is for continuous vaccination
+    where the rate (vmax) of vaccine uptake is varied.
+
+    Parameters
+    ----------
+    df1: pd.DataFrame
+        Output from ``utils.run_scenarios`` with ``size=0``.
+    df2: pd.DataFrame
+        Output from ``utils.run_scenarios`` with ``size=0.1``.
+    df3: pd.DataFrame
+        Output from ``utils.run_scenarios`` with ``size=0.25``.
+    R0s: np.ndarray
+        Array of varying R0 values (ex. np.linspace(1.0, 3.0, 601))
+    epss: np.ndarray
+        Array of varying vaccine efficacy values. (ex. np.linspace(0.01, 1, 201)) 
+        A vaccine that is 50% effective would have an epsilon value of 0.5 For a 
+        leaky vaccine, (epsL, epsA) = (eps, 1), and for an all-or-nothing vaccine,
+        (epsL, epsA) = (1, eps).
+    dim: int (Default: 2)
+        ``dim=2`` plots a 2D contour plot using ``matplotlib.axes.Axes.contourf``
+        and ``dim=3`` plots a 3D surface plot using Matplotlib's ``plot_surface``
+        method.
+    mask_hit: boolean (Default: False)
+        If ``mask_hit=True``, only scenarios where fv < fv* are shown. If 
+        ``mask_hit=False``, all scenarios are shown. 
+    common_scale: boolean (Default: False)
+        If ``common_scale=True``, min and max of colorbar is scaled according to the range of the instantaneous 
+        case min = 0, max = 31. If False, min and max chosen according to the data being plotted.
+    
+    Returns
+    -------
+    fig: matplotlib.pyplot.figure
+    """
+    # parse inputs
+    covs = np.unique(df1["Vax Coverage"].to_numpy())
+    vmax = np.unique(df1["Vmax"].to_numpy())
+    plot_R0, plot_eps = np.nan_to_num(np.meshgrid(R0s, epss, indexing="ij"))
+
+    # construct arrays of difference in percentage reduction for each coverage level
+    # construct arrays of largest vaccine efficacy for each R0 for which fv <= fv*
+    n = len(epss)
+    hit_eps = np.zeros((9, len(R0s)))
+    hit_diff = np.zeros((9, len(R0s)))
+    plot_dfs = []
+    i = 0  # counter
+    for df in [df1, df2, df3]:
+        for vm in vmax:
+            temp_vm_df = df[df["Vmax"] == vm]
+            plot_df = np.reshape(temp_vm_df["Diff"].to_numpy(), np.shape(plot_R0))
+            plot_df = np.ma.masked_where(
+                plot_df == 99999, plot_df
+            )  # mask where fv* < 0 or R never reaches target size
+            if mask_hit:
+                hit_df = np.reshape(
+                    temp_vm_df["Above HIT"].to_numpy(), np.shape(plot_R0)
+                )
+                plot_df = np.ma.masked_where(hit_df, plot_df)  # mask where fv > fv*
+            plot_dfs.append(plot_df)
+
+            # determine where fv >= fv* and fv < fv*
+            for j in range(len(R0s)):
+                temp_df = temp_vm_df.iloc[n * j : n * (j + 1), :]
+                temp_df = temp_df[temp_df.fv != 99999]
+                if not temp_df.empty:
+                    true_df = temp_df[temp_df["Above HIT"] == True]
+                    false_df = temp_df[temp_df["Above HIT"] == False]
+                    if not false_df.empty:
+                        if (
+                            not true_df.empty
+                        ):  # above vs. below fv* divided within eps [0,1]
+                            hit_eps_val = false_df.iloc[-1, 1]
+                        else:  # fv always below fv*
+                            hit_eps_val = 1
+                        hit_diff_val = false_df.iloc[-1, -1]
+
+                        hit_eps[i, j] = hit_eps_val
+                        hit_diff[i, j] = np.log(hit_diff_val + 1)
+            i += 1
+
+    # find min and max values to normalize colormap
+    
+    if common_scale:
+        min_diff = 0
+        max_diff = 31
+    else:
+        min_diff = 9999999
+        max_diff = -9999999
+        for df in plot_dfs:
+            temp_min = np.min(df)
+            if temp_min < min_diff:
+                min_diff = temp_min
+
+            temp_max = np.max(df)
+            if temp_max > max_diff:
+                max_diff = temp_max
+                
+    vm_str = ["1%", "3%", "5%"] * 3
+    tvs_str = ["0"] * 3 + ["0.10"] * 3 + ["0.25"] * 3
+
+    # plot 3D surface plot
+    if dim == 3:
+        fig, axes = plt.subplots(
+            3,
+            3,
+            facecolor="w",
+            figsize=(15,15),
+            gridspec_kw=dict([1, 1, 1]),
+            subplot_kw={"projection": "3d"},
+        )
+        # set colormap
+        norm = Normalize(np.log(min_diff + 1), np.log(max_diff + 1))
+
+        axs = np.array(axes)
+        for i, ax in enumerate(axs.reshape(-1)):
+            ax.plot_surface(
+                plot_R0,
+                plot_eps,
+                np.log(plot_dfs[i] + 1),  # log-transform
+                norm=norm,
+                rstride=1,
+                cstride=1,
+                cmap="viridis",
+            )
+            # plot red line for max fv while fv < fv*
+            ax.plot(R0s, hit_eps[i, :], hit_diff[i, :], "r", linewidth=2)
+            ax.set_title(
+                "$t_V$: R = {tv} | $f_V$: {vmax} of ($f_S$)".format(
+                    tv=tvs_str[i], vmax=vm_str[i]
+                )
+            )
+            ax.set_xlabel("$R_0$")
+            ax.set_ylabel("Vaccine Efficacy")
+            ax.view_init(elev=30, azim=240)
+            ax.set_zlabel("$log(P_A - P_L + 1)$", rotation=180)
+
+        # add colorbar for actual values
+        im = cm.ScalarMappable(norm=norm)
+        cb = fig.colorbar(mappable=im, ax=axes, fraction=0.02, shrink=0.5)
+        cblabels = np.interp(cb.ax.get_yticks(), cb.ax.get_ylim(), im.get_clim())
+        cb.ax.set_yticklabels(np.round(np.exp(cblabels) - 1).astype(int))
+        cb.set_label("Difference in Percentage Reduction (%)")
+
+        return fig
+
+    # plot 2d contour plot
+    elif dim == 2:
+        fig, axes = plt.subplots(
+            3,
+            3,
+            facecolor="w",
+            figsize=(15,15),
+            sharex=True,
+            sharey=True,
+            gridspec_kw=dict(width_ratios=[1,1,1]),
+        )
+        # set colormap
+        norm = Normalize(np.log(min_diff + 1), np.log(max_diff + 1))
+
+        axs = np.array(axes)
+        for i, ax in enumerate(axs.reshape(-1)):
+            im = ax.contourf(
+                plot_R0,
+                plot_eps,
+                np.log(plot_dfs[i] + 1),  # log-transform
+                norm=norm,
+                cmap="viridis",
+            )
+            # plot red line for max fv while fv < fv*
+            ax.plot(R0s, hit_eps[i, :], "r", linewidth=2)
+            ax.set_title(
+                "$t_V$: R = {tv} | $f_V$: {vmax} of ($f_S$)".format(
+                    tv=tvs_str[i], vmax=vm_str[i]
+                )
+            )
+            ax.set_ylim([0, 1])
+            ax.set_xlim([1, 3])
+
+            if i % 3 == 0:
+                ax.set_ylabel("Vaccine Efficacy")
+            if i >= 6:
+                ax.set_xlabel("$R_0$")
+
+        # add colorbar for actual values
+        im = cm.ScalarMappable(norm=norm)
+        fig.tight_layout(pad=1.0)
+        cb = fig.colorbar(mappable=im, ax=axes, fraction=0.02, shrink=0.5)
+        cblabels = np.interp(cb.ax.get_yticks(), cb.ax.get_ylim(), im.get_clim())
+        print(cblabels)
+        cb.ax.set_yticklabels(np.round(np.exp(cblabels) - 1).astype(int))
+        #cb.ax.set_yticklabels([0,5,10,20,30])
         cb.set_label("Difference in Percentage Reduction (%)")
 
         return fig
