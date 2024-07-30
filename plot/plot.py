@@ -240,6 +240,7 @@ def plot_scenarios(
     epss: np.ndarray,
     dim: int = 2,
     mask_hit: bool = False,
+    common_scale: bool = False,
 ):
     """
     Plot difference in percentage reduction of total recovered population between
@@ -269,6 +270,9 @@ def plot_scenarios(
     mask_hit: boolean (Default: False)
         If ``mask_hit=True``, only scenarios where fv < fv* are shown. If 
         ``mask_hit=False``, all scenarios are shown. 
+    common_scale: boolean (Default: False)
+        If ``common_scale=True``, min and max of colorbar is scaled according to the range of the instantaneous 
+        case min = 0, max = 31. If False, min and max chosen according to the data being plotted.
     
     Returns
     -------
@@ -320,16 +324,21 @@ def plot_scenarios(
             i += 1
 
     # find min and max values to normalize colormap
-    min_diff = 9999999
-    max_diff = -9999999
-    for df in plot_dfs:
-        temp_min = np.min(df)
-        if temp_min < min_diff:
-            min_diff = temp_min
+    
+    if common_scale:
+        min_diff = 0
+        max_diff = 31
+    else:
+        min_diff = 9999999
+        max_diff = -9999999
+        for df in plot_dfs:
+            temp_min = np.min(df)
+            if temp_min < min_diff:
+                min_diff = temp_min
 
-        temp_max = np.max(df)
-        if temp_max > max_diff:
-            max_diff = temp_max
+            temp_max = np.max(df)
+            if temp_max > max_diff:
+                max_diff = temp_max
 
     covs_str = ["50%", "75%", "100%"] * 3
     tvs_str = ["0"] * 3 + ["0.10"] * 3 + ["0.25"] * 3
