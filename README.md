@@ -1,6 +1,6 @@
 # Vaccine Failure Modes
 
-Here we introduce the code used for the figures in the paper as well as other scenarios that were run for additional information. The functions written for this project are in plot/plot.py and utils/utils.py.
+Here we introduce the code used for the figures in the paper titled 'Vaccine failure mode determines population-level impact of vaccination campaigns during epidemics', as well as other scenarios that were run for additional information. The functions written for this project are in plot/plot.py and utils/utils.py.
 
 ## Installation
 The functions require the following packages:
@@ -26,14 +26,21 @@ Here we include a general overview of each of the folders included in the reposi
     - 1_Scenarios.ipynb: 3D surface plots and 2d contour plots based on the difference in percentage reduction of the total recovered population of leaky and all-or-nothing vaccines compared to that of without vaccination for 9 scenarios. The scenarios differ in vaccination timing - at 0%, 10%, or 25% epidemic size - and the fraction of the population that is vaccinated - 50%, 75%, or 100% of the remaining susceptible population. Each scenario is run with $R_0$ values varying from 1.0 to 3.0 and with vaccine efficacy values varying from 0.01 to 1.0. The difference is measured 30 days, 60 days, 100 days, and 200 days after vaccination. We assume that vaccination is instantaneous, no reinfection occurs, and vaccine efficacy does not wane overtime.
     - 2_Scenarios_waning.ipynb: Run same scenarios as 1_Scenarios.ipynb with waning vaccine efficacy.
     - 3_Scenarios_comparison.ipynb: Plots comparing the difference in percentage reduction between leaky and all-or-nothing vaccines for when we assume vaccine efficacy does or does not wane overtime. Two vacccine efficacy values are investigated - 0.5 and 0.8. All other assumptions remain the same. 
-    - 4_Scenarios_cont.ipynb: Run same scenarios as 1_Scenarios.ipynb with continuous vaccination.
+    - 4_Scenarios_cont.ipynb: Run same scenarios as 1_Scenarios.ipynb with continuous vaccination which occurs at a fixed rate.
+    - 4_Scenarios_cont_varyRate.ipynb: Run continuous vaccination scenarios as above but with varying rates of vaccination instead and fixed vaccine coverage. 
     - 5_Scenarios_cont.ipynb: Run same scenarios as 1_Scenarios.ipynb with continuous vaccination and waning vaccine efficacy.
 - Examples
     - Examples.ipynb: Time-series plots of infected population, recovered population, and cumulative infections using both instantaneous and continuous vaccination models with parameters derived from real-life scenarios.
+- VaccineAllocation
+    - Vaccine_allocation_Scenario_1.ipynb: Code for vaccine allocation scenario with infectivity and susceptibility trade-off between the two groups. 
+    - Vaccine_allocation_Scenario_2.ipynb: Code for vaccine allocation scenario with disease severity and susceptibility trade-off between the two groups.
+    - Vaccine_allocation_Scenario_3.ipynb: Code for vaccine allocation scenario with vaccine efficacy and susceptibility trade-off between the two groups.
+    - Vaccine_allocation_Scenario_4.ipynb: Code for vaccine allocation scenario with vaccine efficacy and infectiousness trade-off between the two groups.
 - Appendix
     - 1_Scenarios_days.ipynb: 3D surface plots and 2d contour plots based on the difference in percentage reduction of the total recovered population of leaky and all-or-nothing vaccines compared to that of without vaccination for 9 scenarios. The scenarios differ in vaccination timing - before the epidemic starts, 10 days after the epidemic starts, or 30 days after the epidemic starts - and the fraction of the population that is vaccinated - below, slightly above, or above the critical vaccination threshold. All other assumptions are the same as 1_Scenarios.ipynb.
     - 2_Scenarios_days_waning.ipynb: Same as 1_Scenarios_days.ipynb, except we introduce a constant vaccine waning rate.
 
 ## Authors
 - Da In (Diane) Lee (dlee0156)
+- Anjalika Nande, Ph.D. (anjalika-nande)
 - Alison Hill, Ph.D. (alsnhill)
