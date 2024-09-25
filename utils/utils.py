@@ -700,9 +700,7 @@ def run_scenarios_days(
                 fc = 1 / eps * (1 - 1 / (R0 * s_temp[-1]))
 
             # fc is bound from 0 to s0
-            if fc < 0:
-                fc = 99999
-            elif (fc > s0) and (fc != 99999):
+            if (fc > s0) and (fc != 99999):
                 fc = s0
 
             # iterate through vaccine coverage levels
