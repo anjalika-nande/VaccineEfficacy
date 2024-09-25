@@ -508,10 +508,8 @@ def run_scenarios(
                     fc = 1 / eps * (1 - 1 / (R0 * fs))
                     t_new = math.floor(tv + measured)
 
-            # fc is bound by 0 and s0
-            if fc < 0:
-                fc = 99999
-            elif (fc > s0) and (fc != 99999):
+            # fc is upper bound by s0
+            if (fc > s0) and (fc != 99999):
                 fc = s0
 
             for cov in covs:  # iterate through vaccine coverage levels
